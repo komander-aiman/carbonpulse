@@ -8,6 +8,8 @@
   <meta name="description"
     content="CarbonPulse turns monthly electricity use into clear, practical household actions and privacy-safe township insights.">
   <title>CarbonPulse · My Energy</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQ3ynJb+MZqjMZrF2dN/LhPVRA4hLw=" crossorigin="">
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -368,52 +370,119 @@
         </section>
 
         <section class="view" id="view-precinct" data-view-panel="precinct">
-          <div class="page-heading compact-heading">
-            <div><span class="eyebrow">Precinct pulse</span>
-              <h1>See how shared goals add up.</h1>
-              <p>This is a scenario—not a prediction or measured township outcome.</p>
-            </div><span class="scenario-label">What-if model</span>
+          <div class="page-heading compact-heading precinct-heading">
+            <div><span class="eyebrow">Precinct pulse · City of Elmina</span>
+              <h1>From global climate to local action.</h1>
+              <p>Explore live atmospheric context alongside transparent household energy scenarios.</p>
+            </div>
+            <div class="live-data-state" id="liveDataState"><i></i><span><b>Connecting</b> to climate feeds</span></div>
           </div>
-          <div class="scenario-layout">
-            <article class="scenario-control">
-              <span class="eyebrow light">Try a scenario</span>
-              <h2>If participating households used less electricity each month…</h2>
-              <label for="householdSlider"><span>Participating households</span><output
-                  id="householdOutput">200</output></label>
-              <input type="range" id="householdSlider" min="20" max="500" value="200" step="10">
-              <div class="range-labels"><span>20</span><span>500</span></div>
-              <label for="savingSlider"><span>Average reduction</span><output id="savingOutput">10%</output></label>
-              <input type="range" id="savingSlider" min="1" max="25" value="10" step="1">
-              <div class="range-labels"><span>1%</span><span>25%</span></div>
-              <div class="scenario-assumption">Assumes a 300 kWh monthly baseline per household and the same disclosed
-                grid factor.</div>
+
+          <article class="climate-map-card">
+            <div class="map-title-block">
+              <span class="map-kicker">Sime Darby Property townships</span>
+              <h2>Township climate pulse</h2>
+              <p id="mapLayerDescription">Illustrative household electricity footprint using the disclosed grid factor.</p>
+            </div>
+            <div class="map-layer-switcher" role="group" aria-label="Map data layer">
+              <button class="active" data-map-layer="scope">Precinct Scope 3</button>
+              <button data-map-layer="co2">Atmospheric CO₂</button>
+              <button data-map-layer="air">Air quality & CO</button>
+            </div>
+            <div id="climateMap" aria-label="Interactive map of five Sime Darby Property townships"></div>
+            <div class="map-legend" id="mapLegend">
+              <span><i class="legend-emerald"></i>Low / target</span>
+              <span><i class="legend-amber"></i>Moderate</span>
+              <span><i class="legend-orange"></i>High</span>
+            </div>
+            <div class="map-weather-chip">
+              <span class="weather-glyph" aria-hidden="true">☼</span>
+              <div><small>Elmina West microclimate</small><strong><b id="liveTemperature">31.2</b>°C</strong></div>
+              <div><small>Humidity</small><strong><b id="liveHumidity">72</b>%</strong></div>
+            </div>
+            <div class="map-fallback" id="mapFallback" hidden>
+              <strong>Map tiles unavailable</strong><span>Live cards and simulations are still working.</span>
+            </div>
+          </article>
+
+          <div class="climate-metric-grid">
+            <article>
+              <div class="climate-metric-head"><span>Global atmosphere</span><em id="globalDataTag">Fallback</em></div>
+              <strong><b id="globalCo2Value">427.4</b><small>ppm CO₂</small></strong>
+              <p><span id="globalCo2Delta">+53.7%</span> from the 278 ppm pre-industrial reference</p>
             </article>
-            <article class="scenario-result">
-              <div class="scenario-visual" id="householdDots" aria-hidden="true"></div>
-              <div class="scenario-kicker">Combined monthly scenario</div>
-              <div class="scenario-big"><strong id="savedKwh">6,000</strong><span>kWh less</span></div>
-              <div class="scenario-equation"><span id="scenarioHouseholds">200 households</span><b>×</b><span
-                  id="scenarioPerHome">30 kWh each</span></div>
-              <div class="result-grid">
-                <div><span>Estimated emissions difference</span><strong id="savedCarbon">4.44 t CO₂e</strong></div>
-                <div><span>Annualised scenario</span><strong id="annualCarbon">53.28 t CO₂e</strong></div>
+            <article>
+              <div class="climate-metric-head"><span>Elmina West air quality</span><em id="airDataTag">Fallback</em></div>
+              <strong><b id="liveAqi">42</b><small>US AQI</small></strong>
+              <p><span id="livePm25">11.8</span> µg/m³ PM2.5 · regional CAMS estimate</p>
+            </article>
+            <article>
+              <div class="climate-metric-head"><span>Household scenario</span><em>Estimated</em></div>
+              <strong><b id="mapAverageCarbon">248</b><small>kg CO₂e/home</small></strong>
+              <p>Five illustrative precinct baselines · 0.740 kg CO₂e/kWh</p>
+            </article>
+          </div>
+
+          <section class="climate-simulator">
+            <div class="simulator-intro">
+              <span class="eyebrow">Macro-to-micro simulator</span>
+              <h2>Travel through the climate story—then test a community response.</h2>
+              <p>Global atmospheric concentration provides context. Household electricity scenarios show where residents can act.</p>
+            </div>
+
+            <article class="timeline-panel">
+              <div class="timeline-copy">
+                <div class="timeline-year"><span id="timelineYear">2026</span><em id="timelineBadge">Live context</em></div>
+                <h3 id="timelineTitle">Global concentration, local choices</h3>
+                <p id="timelineDescription">Live global CO₂ is paired with Elmina microclimate context. It is not a local air-quality reading or a household impact metric.</p>
               </div>
-              <p><svg viewBox="0 0 24 24">
-                  <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 8v6m0-10v.2" />
-                </svg> Illustrative scenario only. Actual change must be measured against comparable billing periods.
-              </p>
+              <div class="timeline-reading">
+                <small>Global atmospheric CO₂</small>
+                <strong><b id="timelinePpm">427.4</b> ppm</strong>
+                <span id="timelineComparison">+149.4 ppm from 1850</span>
+              </div>
+              <div class="timeline-control">
+                <input type="range" id="timelineSlider" min="0" max="3" value="2" step="1" aria-label="Climate timeline year">
+                <div class="timeline-stops"><button data-timeline-index="0">1850<small>Pre-industrial</small></button><button data-timeline-index="1">2021<small>SDP baseline</small></button><button class="active" data-timeline-index="2">2026<small>Live</small></button><button data-timeline-index="3">2030<small>SDP target</small></button></div>
+              </div>
+              <div class="timeline-assets" id="timelineAssets">
+                <div><strong>30,100</strong><span>ERT trees planted since 2011</span></div>
+                <div><strong>1,450</strong><span>Elmina Biodiversity Corridor trees</span></div>
+                <div><strong>603 kWp</strong><span>SDP rooftop solar context</span></div>
+                <div><strong>−40%</strong><span>2030 Scope 1 & 2 target</span></div>
+              </div>
+              <p class="timeline-caution">Programme figures are shown as context and are not automatically deducted from household estimates.</p>
             </article>
-          </div>
-          <div class="precinct-metrics">
-            <article><span class="metric-icon lime">01</span>
-              <p>Opted-in demo households</p><strong>128</strong><small>64% of scenario group</small>
-            </article>
-            <article><span class="metric-icon sky">02</span>
-              <p>Monthly submissions</p><strong>96</strong><small>illustrative coverage</small>
-            </article>
-            <article><span class="metric-icon peach">03</span>
-              <p>Actions completed</p><strong>214</strong><small>this month · demo data</small>
-            </article>
+
+            <div class="whatif-grid">
+              <article class="whatif-controls">
+                <span class="eyebrow light">Community what-if</span>
+                <h3>How far could shared energy savings move the pulse?</h3>
+                <label for="householdSlider"><span>Participating Elmina homes</span><output id="householdOutput">200</output></label>
+                <input type="range" id="householdSlider" min="200" max="2000" value="200" step="100">
+                <div class="range-labels"><span>200 homes</span><span>2,000 homes</span></div>
+                <label for="savingSlider"><span>Average energy saved</span><output id="savingOutput">10%</output></label>
+                <input type="range" id="savingSlider" min="0" max="20" value="10" step="1">
+                <div class="range-labels"><span>0%</span><span>20%</span></div>
+                <p>Assumes 300 kWh per home each month and applies the same 0.740 kg CO₂e/kWh factor.</p>
+              </article>
+              <article class="whatif-result">
+                <span class="scenario-label">Illustrative scenario</span>
+                <div class="whatif-primary"><strong id="savedCarbon">4.44</strong><span>t CO₂e less<br>each month</span></div>
+                <div class="whatif-equation"><span id="scenarioHouseholds">200 homes</span><b>×</b><span id="scenarioPerHome">30 kWh saved</span><b>×</b><span>0.740 factor</span></div>
+                <div class="whatif-stats">
+                  <div><span>Energy avoided</span><strong id="savedKwh">6,000 kWh</strong></div>
+                  <div><span>Annualised scenario</span><strong id="annualCarbon">53.28 t CO₂e</strong></div>
+                  <div><span>Tree-month equivalent</span><strong id="treeEquivalent">2,046 trees</strong></div>
+                </div>
+                <div class="corridor-progress"><div><span>Compared with 1,450 Elmina corridor trees</span><b id="treeProgressLabel">141%</b></div><i><span id="treeProgressBar"></span></i><small>Uses an illustrative 2.17 kg CO₂e absorbed per tree/month assumption; not a verified offset credit.</small></div>
+              </article>
+            </div>
+          </section>
+
+          <div class="climate-source-note">
+            <span>Data notes</span>
+            <p>Atmospheric and weather feeds: Open-Meteo with CAMS ENSEMBLE; global CO₂: Global Warming API. Values may fall back to labelled demo data when a feed or CORS is unavailable. Household figures are scenarios—not measured Scope 3 inventory results.</p>
           </div>
         </section>
 
@@ -529,6 +598,8 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span>
     <p><strong>September usage updated</strong><small>Your estimate and charts are now refreshed.</small></p>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 
