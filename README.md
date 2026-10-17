@@ -26,6 +26,6 @@ The app stores demo preferences in browser `localStorage`. No bill image or hous
 
 ## Map provider note
 
-The requested CARTO Dark Matter URL is retained in `dist/app.js`. CARTO began requiring a free basemap key in September 2026, so the no-key version uses OpenStreetMap tiles with a local dark treatment. If a CARTO key is supplied as `window.CARBONPULSE_CARTO_KEY` before `app.js` loads, the app uses Dark Matter instead.
+The original CARTO Dark Matter raster endpoint now returns API-key placeholder tiles. To keep the prototype free and keyless, the map uses Esri's public World Dark Gray base and reference tile services with visible provider attribution.
 
 Atmospheric values are regional model estimates, not township sensors. Household CO2e values and tree equivalents are explicitly labelled scenarios rather than audited inventory or offset results.

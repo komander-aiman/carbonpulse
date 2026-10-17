@@ -1,7 +1,8 @@
 const FACTOR = 0.740;
 const PREINDUSTRIAL_CO2 = 278.0;
 const TREE_ABSORPTION_KG_MONTH = 2.17;
-const CARTO_DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const DARK_BASE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const DARK_REFERENCE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
 const MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
 const BASE_USAGE = [343, 329, 335, 317, 326];
 
@@ -250,11 +251,7 @@ function ensureClimateMap() {
   });
 
   let tileErrors = 0;
-  L.tileLayer(CARTO_DARK_TILE_URL, {
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-  })
+  const monitorTileLayer = layer => layer
     .on("tileload", () => {
       tileErrors = 0;
       $("#mapFallback").hidden = true;
@@ -262,8 +259,16 @@ function ensureClimateMap() {
     .on("tileerror", () => {
       tileErrors += 1;
       if (tileErrors > 8) $("#mapFallback").hidden = false;
-    })
-    .addTo(climateMap);
+    });
+
+  monitorTileLayer(L.tileLayer(DARK_BASE_TILE_URL, {
+    maxZoom: 20,
+    attribution: "Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors and the GIS user community"
+  })).addTo(climateMap);
+
+  monitorTileLayer(L.tileLayer(DARK_REFERENCE_TILE_URL, {
+    maxZoom: 20
+  })).addTo(climateMap);
 
   state.locations.forEach(location => {
     const marker = L.marker([location.lat, location.lon], {
