@@ -2,7 +2,6 @@ const FACTOR = 0.740;
 const PREINDUSTRIAL_CO2 = 278.0;
 const TREE_ABSORPTION_KG_MONTH = 2.17;
 const CARTO_DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const OSM_FALLBACK_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
 const BASE_USAGE = [343, 329, 335, 317, 326];
 
@@ -250,13 +249,16 @@ function ensureClimateMap() {
     maxZoom: 17
   });
 
-  const cartoKey = typeof window.CARBONPULSE_CARTO_KEY === "string" ? window.CARBONPULSE_CARTO_KEY.trim() : "";
-  const tileUrl = cartoKey ? `${CARTO_DARK_TILE_URL}?key=${encodeURIComponent(cartoKey)}` : OSM_FALLBACK_TILE_URL;
-  const tileOptions = cartoKey
-    ? { subdomains: "abcd", maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO" }
-    : { maxZoom: 19, className: "dark-fallback-tiles", attribution: "&copy; OpenStreetMap contributors · dark fallback" };
   let tileErrors = 0;
-  L.tileLayer(tileUrl, tileOptions)
+  L.tileLayer(CARTO_DARK_TILE_URL, {
+    subdomains: "abcd",
+    maxZoom: 20,
+    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+  })
+    .on("tileload", () => {
+      tileErrors = 0;
+      $("#mapFallback").hidden = true;
+    })
     .on("tileerror", () => {
       tileErrors += 1;
       if (tileErrors > 8) $("#mapFallback").hidden = false;

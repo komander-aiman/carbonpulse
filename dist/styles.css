@@ -293,7 +293,6 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .leaflet-control-zoom a { border: 1px solid rgba(255,255,255,.08) !important; background: rgba(13,20,18,.88) !important; color: #fff !important; }
 .leaflet-control-attribution { background: rgba(13,20,18,.7) !important; color: #6f817a !important; font-size: 7px !important; }
 .leaflet-control-attribution a { color: #9eb5ac !important; }
-.dark-fallback-tiles { filter: grayscale(1) invert(.92) brightness(.45) contrast(1.18) hue-rotate(105deg); }
 .climate-div-icon { border: 0 !important; background: transparent !important; }
 .glow-marker { --glow:#eab308; --marker-x:0; --marker-y:0; width: 140px; height: 140px; position: relative; display: grid; place-items: center; transform:translate(var(--marker-x),var(--marker-y)); transition: transform .35s ease; }
 .glow-marker:hover { transform:translate(var(--marker-x),var(--marker-y)) scale(1.06); }
