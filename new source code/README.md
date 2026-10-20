@@ -51,13 +51,36 @@ Postgres.
 |---|---|
 | `tsc --noEmit` | clean, strict with `noUncheckedIndexedAccess` |
 | `eslint` | clean |
-| Unit tests | 85 passing across 6 files |
-| E2E | 50 passing on Chromium and Pixel 7 |
+| Unit tests | 102 passing across 7 files |
+| E2E | 78 passing on Chromium and Pixel 7 |
 | axe (WCAG 2.2 AA) | 0 serious or critical on 8 routes plus the modal, contrast included |
 | Calibration | mean 0.739996, bounds 0.607–0.931, evening peak above mean, daytime below night, max hour jump 0.069 |
 | Overview LCP | ~1.2 s under 4× CPU throttle and 4G |
 | Third-party requests | none beyond Google Fonts |
+| `npm audit --omit=dev` | 0 vulnerabilities |
 | SQL tests | written; require a running Postgres (see `db/README.md`) |
+
+## Security posture
+
+- **CSP with a per-request nonce**, issued in `src/proxy.ts`. It is *not* in
+  `next.config.ts`: a static policy blocks the App Router's inline bootstrap
+  scripts and silently breaks hydration on every page. `tests/e2e/csp.spec.ts`
+  asserts the map still initialises and that no inline script lacks a nonce.
+- **CSRF origin check** on every mutating API route (`src/lib/csrf.ts`).
+  `SameSite=Lax` alone does not cover same-site subdomains.
+- **Rate limits** on usage, import, estimate, and consent. Process-local, so a
+  multi-instance deployment must move them to Redis or Postgres.
+- **Signed session cookie** (`HttpOnly`, `Secure`, `SameSite=Lax`), HMAC-verified
+  with a timing-safe compare. No route accepts a household id from the client.
+- **Cron secret** compared in constant time.
+- **Markdown is escaped before a tiny allowlist is re-applied**, so a pasted
+  `<script>` renders as text. Both `dangerouslySetInnerHTML` sinks use it.
+- **Admin RLS is not a blanket bypass**: an admin can read content, snapshots,
+  and job runs, but not household usage rows.
+
+Known limitations, stated rather than hidden: the in-memory store is capped but
+still per-process; rate limits are per-process; `ADMIN_STUB` is not a real role
+check; the SQL suite has not been executed against a live database.
 
 ## Structure
 

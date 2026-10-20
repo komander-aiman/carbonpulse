@@ -36,6 +36,7 @@ export function ElminaMap({
     let cancelled = false;
     let map: import("maplibre-gl").Map | null = null;
     let popup: import("maplibre-gl").Popup | null = null;
+    let removeKeyDown: (() => void) | null = null;
 
     (async () => {
       try {
@@ -183,6 +184,7 @@ export function ElminaMap({
             if (event.key === "Escape") popup?.remove();
           };
           document.addEventListener("keydown", onKeyDown);
+          removeKeyDown = () => document.removeEventListener("keydown", onKeyDown);
         });
       } catch {
         if (!cancelled) setStatus("failed");
@@ -191,6 +193,10 @@ export function ElminaMap({
 
     return () => {
       cancelled = true;
+      // The listener was registered inside an async load callback, so it must
+      // be torn down there too; otherwise every remount leaks a handler that
+      // still holds the old map and popup.
+      removeKeyDown?.();
       popup?.remove();
       map?.remove();
     };

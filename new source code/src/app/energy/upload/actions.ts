@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { ensureSession, sessionCookie } from "@/lib/session";
+import { rateLimit, sessionKey } from "@/lib/rate-limit";
 import { ensureHousehold, saveUsage, recordConsent } from "@/lib/household-store";
 import { parseIntervalCsv, validateIntervals, intervalEstimate } from "@/domain/carbon/interval";
 import { CONSENT_POLICY_VERSION } from "@/lib/config";
@@ -74,6 +75,17 @@ export async function saveManualUsage(_prev: FormState, formData: FormData): Pro
 }
 
 export async function importIntervalCsv(_prev: FormState, formData: FormData): Promise<FormState> {
+  // 5 imports per hour, keyed on the signed session. Checked before reading the
+  // file so a rejected caller cannot force a 5 MB parse.
+  const session = await ensureSession();
+  const limit = rateLimit(sessionKey("import", session.householdId), 5, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return {
+      ok: false,
+      message: `Too many uploads. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minutes.`,
+    };
+  }
+
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, message: "Choose a CSV file to import.", fields: { file: "No file selected." } };

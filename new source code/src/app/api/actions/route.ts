@@ -3,6 +3,7 @@ import { ensureSession } from "@/lib/session";
 import { ensureHousehold, getHousehold, setActionState } from "@/lib/household-store";
 import { buildActionsViewModel } from "@/lib/view-model";
 import { z } from "zod";
+import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 
 const schema = z.object({
   actionId: z.string().min(1).max(64),
@@ -16,6 +17,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return forbiddenOrigin();
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

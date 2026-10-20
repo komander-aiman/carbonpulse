@@ -127,6 +127,29 @@ function persist(data: HouseholdData): void {
   s.usage.set(data.household.id, [...data.usage]);
   s.actions.set(data.household.id, [...data.actions]);
   s.consents.set(data.household.id, [...data.consents]);
+  evictIfNeeded();
+}
+
+/**
+ * The scaffold holds household state in process memory, so an unauthenticated
+ * visitor can grow it with a fresh cookie on every request. Production uses
+ * Postgres; until then, cap the map and drop the oldest households so a single
+ * instance cannot be exhausted. Insertion order is used as the recency proxy
+ * because every write deletes and re-sets the key.
+ */
+const MAX_HOUSEHOLDS = 5_000;
+
+function evictIfNeeded(): void {
+  const s = store();
+  if (s.households.size <= MAX_HOUSEHOLDS) return;
+  const excess = s.households.size - MAX_HOUSEHOLDS;
+  const oldest = [...s.households.keys()].slice(0, excess);
+  for (const id of oldest) {
+    s.households.delete(id);
+    s.usage.delete(id);
+    s.actions.delete(id);
+    s.consents.delete(id);
+  }
 }
 
 export function getHousehold(householdId: string): HouseholdData | null {
@@ -169,18 +192,52 @@ export function saveUsage(householdId: string, input: SaveUsageInput): SaveUsage
   if (input.periodEnd <= input.periodStart) {
     return { ok: false, code: "invalid_period", message: "The billing period end must be after the start." };
   }
-  const monthsOld =
-    (Date.now() - new Date(`${input.periodStart}T00:00:00Z`).getTime()) / (1000 * 60 * 60 * 24 * 30);
+
+  const startMs = new Date(`${input.periodStart}T00:00:00Z`).getTime();
+  const endMs = new Date(`${input.periodEnd}T00:00:00Z`).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+    return { ok: false, code: "invalid_period", message: "Enter a valid billing period." };
+  }
+  if (endMs > Date.now()) {
+    return {
+      ok: false,
+      code: "period_in_future",
+      message: "The billing period cannot end in the future.",
+    };
+  }
+  const monthsOld = (Date.now() - startMs) / (1000 * 60 * 60 * 24 * 30);
   if (monthsOld > 24) {
     return { ok: false, code: "period_too_old", message: "Billing periods must be within the last 24 months." };
   }
+  if (endMs - startMs > 400 * 86_400_000) {
+    return {
+      ok: false,
+      code: "period_too_long",
+      message: "A single billing period cannot span more than about 13 months.",
+    };
+  }
 
-  const existing = data.usage.filter((record) => record.periodStart === input.periodStart && !record.isDemo);
-  if (existing.length > 0) {
+  if (data.usage.some((record) => record.periodStart === input.periodStart && !record.isDemo)) {
     return {
       ok: false,
       code: "duplicate_period",
       message: "A confirmed record already exists for this billing period.",
+    };
+  }
+
+  // FR-1.2: periods must not overlap. Comparing only exact start dates let a
+  // resident save two records for the same electricity.
+  const overlap = data.usage.find(
+    (record) =>
+      !record.isDemo &&
+      new Date(`${record.periodStart}T00:00:00Z`).getTime() < endMs &&
+      new Date(`${record.periodEnd}T00:00:00Z`).getTime() > startMs,
+  );
+  if (overlap) {
+    return {
+      ok: false,
+      code: "overlapping_period",
+      message: `This period overlaps an existing record (${overlap.periodStart} to ${overlap.periodEnd}).`,
     };
   }
 

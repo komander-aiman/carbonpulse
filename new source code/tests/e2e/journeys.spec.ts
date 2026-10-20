@@ -142,8 +142,9 @@ test.describe("privacy and access boundaries", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("scenario API rejects out-of-range input", async ({ request }) => {
+  test("scenario API rejects out-of-range input", async ({ request, baseURL }) => {
     const response = await request.post("/api/scenario", {
+      headers: { origin: baseURL ?? "http://127.0.0.1:3100" },
       data: { households: 99999, reductionPct: 90, baselineKwh: 5 },
     });
     expect(response.status()).toBe(422);

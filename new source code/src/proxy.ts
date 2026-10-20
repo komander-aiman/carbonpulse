@@ -37,25 +37,70 @@ async function isValid(token: string): Promise<boolean> {
   return provided === (await sign(householdId));
 }
 
+const isDev = process.env.NODE_ENV !== "production";
+
 /**
- * Assigns the signed household session before any page renders. Without this,
- * the first read would use the demo id and the first mutation would create a
- * different household, splitting state. The cookie carries only an opaque id;
- * no client-supplied id is ever trusted.
+ * Nonce-based CSP, built per request.
+ *
+ * A static CSP in `next.config.ts` cannot work here: the App Router emits
+ * inline bootstrap scripts, and blocking them breaks hydration on every page.
+ * Next reads the `nonce-` value from the CSP header and applies it to its own
+ * scripts, so this stays strict without `unsafe-inline` for scripts.
+ */
+function contentSecurityPolicy(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""} blob:`,
+    "worker-src 'self' blob:",
+    // MapLibre injects inline styles, and the design system uses inline
+    // style attributes for computed widths, so styles cannot be nonced.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https://tiles.openfreemap.org",
+    "connect-src 'self' https://tiles.openfreemap.org https://api.open-meteo.com https://archive-api.open-meteo.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join("; ");
+}
+
+/**
+ * Assigns the signed household session before any page renders, and applies
+ * the per-request security headers. The cookie carries only an opaque id; no
+ * client-supplied id is ever trusted.
  */
 export default async function proxy(request: NextRequest) {
-  const existing = request.cookies.get(COOKIE_NAME)?.value;
-  if (existing && (await isValid(existing))) return NextResponse.next();
+  const nonce = base64url(crypto.getRandomValues(new Uint8Array(16)).buffer);
+  const csp = contentSecurityPolicy(nonce);
 
-  const householdId = crypto.randomUUID();
-  const response = NextResponse.next();
-  response.cookies.set(COOKIE_NAME, `${householdId}.${await sign(householdId)}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-  });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+
+  const existing = request.cookies.get(COOKIE_NAME)?.value;
+  const needsSession = !(existing && (await isValid(existing)));
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "geolocation=(), camera=(), microphone=()");
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+
+  if (needsSession) {
+    const householdId = crypto.randomUUID();
+    response.cookies.set(COOKIE_NAME, `${householdId}.${await sign(householdId)}`, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: MAX_AGE_SECONDS,
+    });
+  }
+
   return response;
 }
 

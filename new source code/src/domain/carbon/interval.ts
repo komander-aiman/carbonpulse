@@ -13,6 +13,10 @@ export const MAX_INTERVAL_KWH = 50;
 export const MAX_GAP_MINUTES = 120;
 export const MAX_COVERAGE_GAP_PCT = 2;
 export const DEFAULT_INTERVAL_MINUTES = 30;
+/** FR-1.3: a single upload may not span more than 90 days. */
+export const MAX_SPAN_DAYS = 90;
+/** FR-1.3 row cap, so a 5 MB file of tiny rows cannot exhaust memory. */
+export const MAX_ROWS = 20_000;
 
 function parseInstant(value: string): number | null {
   const parsed = Date.parse(value);
@@ -219,6 +223,10 @@ export function parseIntervalCsv(text: string): CsvParseResult {
 
   const readings: IntervalReading[] = [];
   for (let i = 1; i < lines.length; i += 1) {
+    if (readings.length >= MAX_ROWS) {
+      errors.push(`The file has more than ${MAX_ROWS.toLocaleString("en-MY")} rows. Split it into shorter periods.`);
+      break;
+    }
     const cells = lines[i]!.split(",");
     const rawTime = cells[timeIndex]?.trim();
     const rawKwh = cells[kwhIndex]?.trim();
@@ -235,9 +243,23 @@ export function parseIntervalCsv(text: string): CsvParseResult {
   }
 
   const validation = validateIntervals(readings);
+  // Every issue must reach the resident: a row-level failure that is silently
+  // dropped turns "nothing was saved" into an unexplained dead end.
   for (const issue of validation.issues) {
-    if (issue.index === -1) errors.push(issue.message);
+    // Avoid duplicating a message already produced by the row loop above.
+    if (!errors.includes(issue.message)) errors.push(issue.message);
   }
   if (readings.length === 0) errors.push("No data rows found.");
+
+  const spanMinutes =
+    validation.start && validation.end
+      ? (Date.parse(validation.end) - Date.parse(validation.start)) / 60_000
+      : 0;
+  if (spanMinutes > MAX_SPAN_DAYS * 24 * 60) {
+    errors.push(
+      `The file spans more than ${MAX_SPAN_DAYS} days (${Math.round(spanMinutes / 1440)} days). Split it into shorter periods.`,
+    );
+  }
+
   return { ok: errors.length === 0 && validation.ok, readings, errors };
 }

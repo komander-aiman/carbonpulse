@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
+import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 import { ensureSession } from "@/lib/session";
 import { ensureHousehold, getHousehold } from "@/lib/household-store";
 import { flatEstimate, modelledEstimate } from "@/domain/carbon/estimates";
@@ -18,6 +20,11 @@ const schema = z.object({
  * this route is the only place the two numbers are produced.
  */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return forbiddenOrigin();
+
+  const limit = rateLimit(clientKey(request, 'estimate'), 60, 60 * 60 * 1000);
+  if (!limit.allowed) return tooManyRequests(limit);
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { readSession } from "@/lib/session";
 import { ensureHousehold } from "@/lib/household-store";
 import { scenario } from "@/domain/community";
@@ -14,6 +15,8 @@ const schema = z.object({
 
 /** Scenario is a pure function: nothing is persisted and nothing enters aggregates. */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return forbiddenOrigin();
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

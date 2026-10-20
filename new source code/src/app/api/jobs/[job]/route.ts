@@ -1,4 +1,17 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
+
+/** Constant-time string compare that tolerates differing lengths. */
+function timingSafeEqualString(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Still perform a comparison so the failure path is not obviously shorter.
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Job entry points. Every job is idempotent and writes one snapshot row keyed
@@ -22,7 +35,8 @@ export async function GET() {
 export async function POST(request: Request, context: { params: Promise<{ job: string }> }) {
   const secret = process.env.CRON_SECRET;
   const provided = request.headers.get("authorization");
-  if (!secret || provided !== `Bearer ${secret}`) {
+  // Timing-safe compare: a byte-by-byte early exit would leak the secret shape.
+  if (!secret || !provided || !timingSafeEqualString(provided, `Bearer ${secret}`)) {
     return NextResponse.json(
       { ok: false, error: { code: "unauthorized", message: "Cron secret required." } },
       { status: 401 },

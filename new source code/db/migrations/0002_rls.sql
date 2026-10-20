@@ -52,14 +52,18 @@ create policy action_evidence_read on action_evidence for select using (true);
 
 -- Owner-only household data. The insert path is a route handler using the
 -- session household id; reads and writes are both scoped to it.
+-- PRD 04 §6: an admin may read content and cohort health, never household
+-- usage rows. The admin claim is therefore absent from the usage policies; it
+-- appears only on the tables an admin legitimately needs (content, snapshots,
+-- job runs). `is_admin()` must not be used as a blanket bypass.
 create policy household_owner_select on household
-  for select using (id = current_household_id() or auth_user_id = auth.uid() or is_admin());
+  for select using (id = current_household_id() or auth_user_id = auth.uid());
 create policy household_owner_update on household
   for update using (id = current_household_id() or auth_user_id = auth.uid())
   with check (id = current_household_id() or auth_user_id = auth.uid());
 
 create policy usage_month_owner_all on usage_month
-  for all using (household_id = current_household_id() or is_admin())
+  for all using (household_id = current_household_id())
   with check (household_id = current_household_id());
 
 create policy usage_interval_owner_all on usage_interval

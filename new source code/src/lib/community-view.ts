@@ -39,8 +39,12 @@ export function buildCommunityViewModel(
 ): CommunityViewModel {
   const factor = getActiveFactor("peninsular");
 
+  // The viewer is part of their own cohort. Excluding them meant a cohort of
+  // exactly k = 10 consenting households showed "suppressed" to every member,
+  // because each saw only the other nine. Suppression is about the group being
+  // large enough, and the group includes the person looking at it.
   const realRows = listConsentedCohort().filter(
-    (row) => row.township === township && row.householdId !== householdId && !row.isDemo,
+    (row) => row.township === township && !row.isDemo,
   );
 
   const useDemo = DEMO_MODE && realRows.length < 10;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { SEED_ARTICLES } from "@/db/articles";
 import { renderMarkdown, validateArticle } from "@/domain/content";
 
@@ -35,6 +36,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return forbiddenOrigin();
+
   if (process.env.ADMIN_STUB !== "true") {
     return NextResponse.json(
       { ok: false, error: { code: "forbidden", message: "Admin access required." } },
