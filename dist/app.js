@@ -1,9 +1,21 @@
 const FACTOR = 0.740;
 const PREINDUSTRIAL_CO2 = 278.0;
 const TREE_ABSORPTION_KG_MONTH = 2.17;
-const CARTO_DARK_TILE_URL = "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png";
-const DARK_BASE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
-const DARK_REFERENCE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const CARTO_TILE_URLS = {
+  dark: "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png"
+};
+const ESRI_TILE_URLS = {
+  dark: {
+    base: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    reference: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+  },
+  light: {
+    base: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    reference: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+  }
+};
+const MALAYSIA_BOUNDS = [[0.65, 99.0], [7.85, 119.8]];
 const MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
 const BASE_USAGE = [343, 329, 335, 317, 326];
 
@@ -94,9 +106,11 @@ const state = {
   kwh: Number(localStorage.getItem("carbonpulse-kwh")) || 300,
   completed: JSON.parse(localStorage.getItem("carbonpulse-actions") || '["temperature"]'),
   mapLayer: "scope",
+  mapTheme: localStorage.getItem("carbonpulse-map-theme") === "light" ? "light" : "dark",
+  mapExtent: "townships",
   globalCo2: 427.4,
   globalLive: false,
-  weather: { temperature: 31.2, humidity: 72, live: false },
+  weather: { temperature: 31.2, humidity: 72, time: null, live: false },
   locations: PRECINCTS.map(location => ({
     ...location,
     atmosphere: { ...location.fallback },
@@ -106,12 +120,18 @@ const state = {
 
 let climateMap;
 let climateMapStarted = false;
+let climateBasemapVersion = 0;
+let climateBasemapLayers = [];
 const climateMarkers = new Map();
 
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const formatNumber = value => new Intl.NumberFormat("en-MY", { maximumFractionDigits: 0 }).format(value);
 const safeNumber = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const formatFeedTime = value => {
+  const time = typeof value === "string" ? value.split("T")[1]?.slice(0, 5) : "";
+  return time ? `${time} MYT` : "time unavailable";
+};
 
 function navigate(view) {
   $$(".nav-item").forEach(item => item.classList.toggle("active", item.dataset.view === view));
@@ -178,10 +198,10 @@ async function fetchJson(url, timeoutMs = 7000) {
 
 async function loadClimateData() {
   const airRequests = state.locations.map(location => {
-    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.lat}&longitude=${location.lon}&current=us_aqi,pm2_5,carbon_monoxide,carbon_dioxide&hourly=carbon_dioxide`;
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.lat}&longitude=${location.lon}&current=us_aqi,pm2_5,carbon_monoxide,carbon_dioxide&hourly=carbon_dioxide&timezone=Asia%2FKuala_Lumpur`;
     return fetchJson(url).then(data => ({ type: "air", id: location.id, data }));
   });
-  const weatherRequest = fetchJson("https://api.open-meteo.com/v1/forecast?latitude=3.1890&longitude=101.5090&current=temperature_2m,relative_humidity_2m")
+  const weatherRequest = fetchJson("https://api.open-meteo.com/v1/forecast?latitude=3.1890&longitude=101.5090&current=temperature_2m,relative_humidity_2m&timezone=Asia%2FKuala_Lumpur")
     .then(data => ({ type: "weather", data }));
   const globalRequest = fetchJson("https://global-warming.org/api/co2-api")
     .then(data => ({ type: "global", data }));
@@ -196,20 +216,27 @@ async function loadClimateData() {
       const location = state.locations.find(item => item.id === payload.id);
       const current = payload.data?.current;
       if (!location || !current) return;
+      const hasCompleteLiveReading = ["carbon_dioxide", "us_aqi", "carbon_monoxide", "pm2_5"]
+        .every(field => Number.isFinite(Number(current[field])));
       location.atmosphere = {
         co2: safeNumber(current.carbon_dioxide, location.fallback.co2),
         aqi: safeNumber(current.us_aqi, location.fallback.aqi),
         co: safeNumber(current.carbon_monoxide, location.fallback.co),
         pm25: safeNumber(current.pm2_5, location.fallback.pm25)
       };
-      location.live = true;
-      liveAirCount += 1;
+      location.time = current.time || null;
+      location.live = hasCompleteLiveReading;
+      if (hasCompleteLiveReading) liveAirCount += 1;
     }
     if (payload.type === "weather" && payload.data?.current) {
+      const current = payload.data.current;
+      const isLive = ["temperature_2m", "relative_humidity_2m"]
+        .every(field => Number.isFinite(Number(current[field])));
       state.weather = {
-        temperature: safeNumber(payload.data.current.temperature_2m, state.weather.temperature),
-        humidity: safeNumber(payload.data.current.relative_humidity_2m, state.weather.humidity),
-        live: true
+        temperature: safeNumber(current.temperature_2m, state.weather.temperature),
+        humidity: safeNumber(current.relative_humidity_2m, state.weather.humidity),
+        time: current.time || null,
+        live: isLive
       };
     }
     if (payload.type === "global" && Array.isArray(payload.data?.co2)) {
@@ -223,13 +250,123 @@ async function loadClimateData() {
 
   const fullyLive = liveAirCount === state.locations.length && state.weather.live && state.globalLive;
   const status = $("#liveDataState");
+  status.classList.remove("live", "fallback");
   status.classList.add(fullyLive ? "live" : "fallback");
   status.innerHTML = fullyLive
-    ? "<i></i><span><b>Live feeds connected</b>Updated atmospheric context</span>"
+    ? "<i></i><span><b>Live model feeds connected</b>Open-Meteo + CAMS context</span>"
     : `<i></i><span><b>${liveAirCount ? "Partial live data" : "Fallback data active"}</b>${liveAirCount}/5 precinct feeds connected</span>`;
   renderClimateCards();
   renderTimeline(Number($("#timelineSlider").value));
   renderMapMarkers();
+}
+
+function updateMapDisplayControls() {
+  const isLight = state.mapTheme === "light";
+  const themeButton = $("#mapThemeToggle");
+  $(".climate-map-card")?.classList.toggle("light-map", isLight);
+  if (themeButton) {
+    themeButton.setAttribute("aria-pressed", String(isLight));
+    themeButton.setAttribute("aria-label", `Switch to ${isLight ? "dark" : "light"} map`);
+    $("#mapThemeLabel").textContent = isLight ? "Dark map" : "Light map";
+  }
+
+  const extentButton = $("#mapExtentToggle");
+  if (extentButton) {
+    const isMalaysia = state.mapExtent === "malaysia";
+    extentButton.setAttribute("aria-pressed", String(isMalaysia));
+    extentButton.textContent = isMalaysia ? "Township view" : "Malaysia view";
+  }
+}
+
+function clearClimateBasemapLayers() {
+  climateBasemapLayers.forEach(layer => {
+    if (climateMap?.hasLayer(layer)) climateMap.removeLayer(layer);
+  });
+  climateBasemapLayers = [];
+}
+
+function applyClimateBasemap(theme) {
+  if (!climateMap) return;
+  state.mapTheme = theme === "light" ? "light" : "dark";
+  localStorage.setItem("carbonpulse-map-theme", state.mapTheme);
+  updateMapDisplayControls();
+
+  const requestVersion = ++climateBasemapVersion;
+  const mapFallback = $("#mapFallback");
+  const cartoKey = typeof window.CARBONPULSE_CARTO_KEY === "string"
+    ? window.CARBONPULSE_CARTO_KEY.trim()
+    : "";
+  clearClimateBasemapLayers();
+  mapFallback.hidden = true;
+
+  const addLayer = layer => {
+    climateBasemapLayers.push(layer);
+    layer.addTo(climateMap);
+    return layer;
+  };
+
+  const addEsriFallback = () => {
+    if (requestVersion !== climateBasemapVersion) return;
+    clearClimateBasemapLayers();
+    let tileErrors = 0;
+    const monitorTileLayer = layer => layer
+      .on("tileload", () => {
+        if (requestVersion !== climateBasemapVersion) return;
+        tileErrors = 0;
+        mapFallback.hidden = true;
+      })
+      .on("tileerror", () => {
+        if (requestVersion !== climateBasemapVersion) return;
+        tileErrors += 1;
+        if (tileErrors > 8) mapFallback.hidden = false;
+      });
+    const urls = ESRI_TILE_URLS[state.mapTheme];
+
+    addLayer(monitorTileLayer(L.tileLayer(urls.base, {
+      maxZoom: 20,
+      attribution: "Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors and the GIS user community"
+    })));
+    addLayer(monitorTileLayer(L.tileLayer(urls.reference, { maxZoom: 20 })));
+  };
+
+  if (!cartoKey) {
+    addEsriFallback();
+    return;
+  }
+
+  let cartoErrors = 0;
+  let fallbackStarted = false;
+  const cartoLayer = L.tileLayer(`${CARTO_TILE_URLS[state.mapTheme]}?key=${encodeURIComponent(cartoKey)}`, {
+    maxZoom: 20,
+    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+  })
+    .on("tileload", () => {
+      if (requestVersion !== climateBasemapVersion) return;
+      cartoErrors = 0;
+      mapFallback.hidden = true;
+    })
+    .on("tileerror", () => {
+      if (requestVersion !== climateBasemapVersion || fallbackStarted) return;
+      cartoErrors += 1;
+      if (cartoErrors <= 8) return;
+      fallbackStarted = true;
+      addEsriFallback();
+    });
+  addLayer(cartoLayer);
+}
+
+function setMapExtent(extent) {
+  state.mapExtent = extent === "malaysia" ? "malaysia" : "townships";
+  updateMapDisplayControls();
+  if (!climateMap) return;
+
+  const bounds = state.mapExtent === "malaysia"
+    ? L.latLngBounds(MALAYSIA_BOUNDS)
+    : L.latLngBounds(state.locations.map(location => [location.lat, location.lon]));
+  const options = state.mapExtent === "malaysia"
+    ? { padding: [35, 35] }
+    : { padding: [70, 70], maxZoom: 11 };
+  climateMap.fitBounds(bounds, options);
 }
 
 function ensureClimateMap() {
@@ -247,60 +384,12 @@ function ensureClimateMap() {
   climateMap = L.map("climateMap", {
     zoomControl: true,
     attributionControl: true,
-    minZoom: 8,
-    maxZoom: 17
+    minZoom: 4,
+    maxZoom: 17,
+    worldCopyJump: true
   });
 
-  const mapFallback = $("#mapFallback");
-  const cartoKey = typeof window.CARBONPULSE_CARTO_KEY === "string"
-    ? window.CARBONPULSE_CARTO_KEY.trim()
-    : "";
-  let fallbackStarted = false;
-
-  const addEsriFallback = () => {
-    if (fallbackStarted) return;
-    fallbackStarted = true;
-    let tileErrors = 0;
-    const monitorTileLayer = layer => layer
-      .on("tileload", () => {
-        tileErrors = 0;
-        mapFallback.hidden = true;
-      })
-      .on("tileerror", () => {
-        tileErrors += 1;
-        if (tileErrors > 8) mapFallback.hidden = false;
-      });
-
-    monitorTileLayer(L.tileLayer(DARK_BASE_TILE_URL, {
-      maxZoom: 20,
-      attribution: "Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors and the GIS user community"
-    })).addTo(climateMap);
-
-    monitorTileLayer(L.tileLayer(DARK_REFERENCE_TILE_URL, {
-      maxZoom: 20
-    })).addTo(climateMap);
-  };
-
-  if (cartoKey) {
-    let cartoErrors = 0;
-    const cartoLayer = L.tileLayer(`${CARTO_DARK_TILE_URL}?key=${encodeURIComponent(cartoKey)}`, {
-      maxZoom: 20,
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-    })
-      .on("tileload", () => {
-        cartoErrors = 0;
-        mapFallback.hidden = true;
-      })
-      .on("tileerror", () => {
-        cartoErrors += 1;
-        if (cartoErrors <= 8) return;
-        climateMap.removeLayer(cartoLayer);
-        addEsriFallback();
-      })
-      .addTo(climateMap);
-  } else {
-    addEsriFallback();
-  }
+  applyClimateBasemap(state.mapTheme);
 
   state.locations.forEach(location => {
     const marker = L.marker([location.lat, location.lon], {
@@ -312,12 +401,11 @@ function ensureClimateMap() {
     climateMarkers.set(location.id, marker);
   });
 
-  const bounds = L.latLngBounds(state.locations.map(location => [location.lat, location.lon]));
-  climateMap.fitBounds(bounds, { padding: [70, 70], maxZoom: 11 });
+  setMapExtent("townships");
   renderMapMarkers();
   setTimeout(() => {
     climateMap.invalidateSize();
-    climateMap.fitBounds(bounds, { padding: [70, 70], maxZoom: 11 });
+    setMapExtent(state.mapExtent);
   }, 220);
 }
 
@@ -435,6 +523,9 @@ function renderClimateCards() {
   $("#airDataTag").textContent = elminaWest.live ? "Live model" : "Fallback";
   $("#liveTemperature").textContent = state.weather.temperature.toFixed(1);
   $("#liveHumidity").textContent = Math.round(state.weather.humidity);
+  $("#weatherDataTag").textContent = state.weather.live
+    ? `Open-Meteo model · ${formatFeedTime(state.weather.time)}`
+    : "Fallback demonstration data";
 }
 
 function renderTimeline(index) {
@@ -541,6 +632,12 @@ $$('.tip-toggle').forEach(button => button.addEventListener("click", () => butto
 $("#timelineSlider").addEventListener("input", event => renderTimeline(event.target.value));
 $$('[data-timeline-index]').forEach(button => button.addEventListener("click", () => renderTimeline(button.dataset.timelineIndex)));
 $$('[data-map-layer]').forEach(button => button.addEventListener("click", () => setMapLayer(button.dataset.mapLayer)));
+$("#mapThemeToggle").addEventListener("click", () => {
+  applyClimateBasemap(state.mapTheme === "dark" ? "light" : "dark");
+});
+$("#mapExtentToggle").addEventListener("click", () => {
+  setMapExtent(state.mapExtent === "townships" ? "malaysia" : "townships");
+});
 
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
@@ -553,6 +650,7 @@ renderActions();
 renderClimateCards();
 renderScenario();
 renderTimeline(2);
+updateMapDisplayControls();
 loadClimateData();
 const initialView = window.location.hash.slice(1);
 if (["overview", "energy", "actions", "precinct", "learn"].includes(initialView)) navigate(initialView);

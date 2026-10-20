@@ -389,6 +389,12 @@
               <button data-map-layer="co2">Atmospheric CO₂</button>
               <button data-map-layer="air">Air quality & CO</button>
             </div>
+            <div class="map-display-controls" role="group" aria-label="Map appearance and extent">
+              <button id="mapExtentToggle" type="button" aria-pressed="false">Malaysia view</button>
+              <button id="mapThemeToggle" type="button" aria-pressed="false">
+                <span aria-hidden="true">◐</span><b id="mapThemeLabel">Light map</b>
+              </button>
+            </div>
             <div id="climateMap" aria-label="Interactive map of five Sime Darby Property townships"></div>
             <div class="map-legend" id="mapLegend">
               <span><i class="legend-emerald"></i>Low / target</span>
@@ -397,11 +403,11 @@
             </div>
             <div class="map-weather-chip">
               <span class="weather-glyph" aria-hidden="true">☼</span>
-              <div><small>Elmina West microclimate</small><strong><b id="liveTemperature">31.2</b>°C</strong></div>
+              <div><small>Elmina West microclimate</small><strong><b id="liveTemperature">31.2</b>°C</strong><em id="weatherDataTag">Fallback demonstration data</em></div>
               <div><small>Humidity</small><strong><b id="liveHumidity">72</b>%</strong></div>
             </div>
             <div class="map-fallback" id="mapFallback" hidden>
-              <strong>Dark basemap unavailable</strong><span>Live cards and simulations are still working.</span>
+              <strong>Basemap unavailable</strong><span>Live cards and simulations are still working.</span>
             </div>
           </article>
 
