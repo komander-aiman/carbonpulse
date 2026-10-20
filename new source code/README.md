@@ -43,20 +43,39 @@ Postgres.
 | `npm run typecheck` | `tsc --noEmit`, strict |
 | `npm test` | Vitest unit suite |
 | `npm run calibrate` | Prints the intensity profile and its validation gates |
-| `npm run test:e2e` | Playwright journeys (Chromium and mobile) |
+| `npm run test:e2e` | Playwright journeys, accessibility, and performance |
+
+## Verification status
+
+| Gate | Result |
+|---|---|
+| `tsc --noEmit` | clean, strict with `noUncheckedIndexedAccess` |
+| `eslint` | clean |
+| Unit tests | 85 passing across 6 files |
+| E2E | 50 passing on Chromium and Pixel 7 |
+| axe (WCAG 2.2 AA) | 0 serious or critical on 8 routes plus the modal, contrast included |
+| Calibration | mean 0.739996, bounds 0.607–0.931, evening peak above mean, daytime below night, max hour jump 0.069 |
+| Overview LCP | ~1.2 s under 4× CPU throttle and 4G |
+| Third-party requests | none beyond Google Fonts |
+| SQL tests | written; require a running Postgres (see `db/README.md`) |
 
 ## Structure
 
 ```
 src/
   app/            Routes, API handlers, global styles
+  adapters/       Source adapters, recorded fixtures, fallback contract
   components/     Shared UI, map, charts, evidence labels
   domain/         Framework-free logic: carbon, actions, community, content
-  lib/            Session, stores, view models, formatting
+  lib/            Session, stores, view models, context, formatting
   db/             Seed data: demo household, cohort, Elmina geography, articles
+db/
+  migrations/     Forward-only schema, RLS, suppression views
+  seeds/          Reference data
 tests/
-  unit/           Domain tests with golden examples
-  e2e/            Journey and access-boundary tests
+  unit/           Domain and adapter tests with golden examples
+  e2e/            Journeys, accessibility, performance
+  sql/            RLS and suppression tests
 scripts/          Build-time calibration
 ```
 
@@ -94,6 +113,11 @@ scripts/          Build-time calibration
 ## Not yet wired
 
 The scaffold uses an in-memory store and seeded adapters so it renders and tests
-without credentials. Still to land: Supabase schema and RLS, real adapter
-ingestion with snapshot tables, magic-link claim, aggregate rebuild job, upload
-cleanup job, and the axe audit.
+without credentials. Still to land: swap `src/lib/household-store.ts` for
+Supabase queries (schema, RLS, and suppression views are already written in
+`db/`), live adapter fetches behind `DEMO_MODE=false`, magic-link claim, and
+wiring the cron handlers to real ingestion.
+
+`DEMO_MODE` defaults to on, so every route renders with zero external calls and
+adapters fall back to recorded fixtures. Turning it off does not remove the
+fallback: a failing source serves its last good value labelled Cached.

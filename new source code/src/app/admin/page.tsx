@@ -71,7 +71,7 @@ export default async function AdminPage() {
               <h2>{SEED_ARTICLES.length} seeded entries</h2>
             </div>
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable table">
             <table>
               <caption>Publish-readiness checks. Any failed check blocks publishing.</caption>
               <thead>

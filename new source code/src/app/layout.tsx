@@ -3,6 +3,7 @@ import "./globals.css";
 import { SITE } from "@/lib/config";
 import { Sidebar } from "@/components/sidebar";
 import { PrivacyModal } from "@/components/privacy-modal";
+import { LegacyMigration } from "@/components/legacy-migration";
 import { LeafMark } from "@/components/icons";
 import { currentHousehold } from "@/lib/current-household";
 import { buildActionsViewModel } from "@/lib/view-model";
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </div>
         <PrivacyModal />
+        <LegacyMigration />
       </body>
     </html>
   );

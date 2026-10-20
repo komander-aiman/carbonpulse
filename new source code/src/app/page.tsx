@@ -10,6 +10,7 @@ import { getActiveFactor } from "@/domain/carbon/factors";
 import { scenario, formatScenario } from "@/domain/community";
 import { SEED_ARTICLES } from "@/db/articles";
 import { formatKwh, formatKg } from "@/lib/format";
+import { ContextSection } from "@/components/context-section";
 
 export const dynamic = "force-dynamic";
 
@@ -316,7 +317,7 @@ export default async function OverviewPage() {
               Read: {featured.title}
             </Link>
           </div>
-          <div className="definition-grid" style={{ marginTop: 0 }}>
+          <dl className="definition-grid" style={{ marginTop: 0 }}>
             <div>
               <dt>Where you sit in the cohort</dt>
               <dd>
@@ -333,9 +334,15 @@ export default async function OverviewPage() {
               <dt>Precinct data status</dt>
               <dd>{community.isDemoData ? "Demo cohort, excluded from real aggregates." : "Live consenting cohort."}</dd>
             </div>
-          </div>
+          </dl>
         </div>
       </section>
+
+      <ContextSection
+        eyebrow="National context"
+        title="What the country-level numbers say"
+        compact
+      />
     </>
   );
 }

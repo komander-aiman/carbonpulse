@@ -73,7 +73,7 @@ export default async function EnergyPage({
 
           <UsageLineChart periods={energy.periods} />
 
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable table">
             <table>
               <caption>Confirmed billing periods, with both estimates for each</caption>
               <thead>

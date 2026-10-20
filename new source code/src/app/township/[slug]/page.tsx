@@ -5,6 +5,7 @@ import { SEED_ARTICLES } from "@/db/articles";
 import { ACTIONS } from "@/domain/actions";
 import { renderMarkdown } from "@/domain/content";
 import { EvidenceTag } from "@/components/evidence";
+import { ContextSection } from "@/components/context-section";
 import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -113,6 +114,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </aside>
         </div>
       </article>
+
+      <ContextSection eyebrow="Local context" title="Conditions this article depends on" compact />
     </>
   );
 }

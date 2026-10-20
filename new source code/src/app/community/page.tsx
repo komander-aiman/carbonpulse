@@ -8,6 +8,7 @@ import { getConsent } from "@/lib/household-store";
 import { getActiveFactor } from "@/domain/carbon/factors";
 import { PRECINCT_METRICS } from "@/db/demo";
 import { formatKwh, formatKg } from "@/lib/format";
+import { ContextSection } from "@/components/context-section";
 
 export const dynamic = "force-dynamic";
 
@@ -169,7 +170,7 @@ export default async function CommunityPage() {
             <h2>What the sliders can and cannot do</h2>
           </div>
         </div>
-        <div className="definition-grid">
+        <dl className="definition-grid">
           <div>
             <dt>Bounded on purpose</dt>
             <dd>10–2,000 households, 1–25% reduction, 150–600 kWh baseline. Inputs outside those ranges are clamped.</dd>
@@ -189,8 +190,14 @@ export default async function CommunityPage() {
               explicitly.
             </dd>
           </div>
-        </div>
+        </dl>
       </section>
+
+      <ContextSection
+        eyebrow="National and local context"
+        title="Context behind the cohort numbers"
+        compact
+      />
     </>
   );
 }

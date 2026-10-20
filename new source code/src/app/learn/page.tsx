@@ -114,7 +114,7 @@ export default function LearnPage() {
             </div>
           </div>
 
-          <div className="definition-grid">
+          <dl className="definition-grid">
             <div>
               <dt>Estimated · flat factor</dt>
               <dd>
@@ -145,7 +145,7 @@ export default function LearnPage() {
                 outcome, and it never enters historical totals or aggregates.
               </dd>
             </div>
-          </div>
+          </dl>
 
           <p className="source-note">
             Flat estimate on the demo period: {formatKg(300 * factor.kgPerKwh)} kg CO₂e for 300 kWh. Rounding is applied
@@ -212,7 +212,7 @@ export default function LearnPage() {
                 <h2>Registry</h2>
               </div>
             </div>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable table">
               <table>
                 <caption>Every figure in the app resolves to one of these entries</caption>
                 <thead>

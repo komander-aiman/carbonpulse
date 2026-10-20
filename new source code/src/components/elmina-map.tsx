@@ -248,7 +248,7 @@ export function ElminaMap({
       </div>
 
       <div style={{ padding: "0 20px 20px" }}>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable table">
           <table>
             <caption>Subzone aggregates, the keyboard-accessible equivalent of the map</caption>
             <thead>
