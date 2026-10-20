@@ -2,12 +2,17 @@ import { expect, test } from "@playwright/test";
 
 /**
  * Performance budget from PRD 01: LCP under 2.5 s on 4G for Overview.
- * Chromium-only: WebKit does not expose LCP the same way here.
+ * Measured once, on desktop Chromium only. The mobile project is also Chromium
+ * (Pixel 7), so a browserName guard alone would run this twice and the two
+ * CPU-throttled measurements contend with each other, making the budget flaky.
  */
 test.describe("performance budget", () => {
-  test.skip(({ browserName }) => browserName !== "chromium", "LCP measured on Chromium");
+  test("overview LCP is under 2.5s on a throttled 4G profile", async ({ page, browserName, isMobile }) => {
+    // Measured once, on desktop Chromium only. The mobile project is also
+    // Chromium (Pixel 7), so a browserName guard alone would run this twice and
+    // the two CPU-throttled measurements contend, making the budget flaky.
+    test.skip(browserName !== "chromium" || isMobile, "Desktop Chromium only");
 
-  test("overview LCP is under 2.5s on a throttled 4G profile", async ({ page }) => {
     const client = await page.context().newCDPSession(page);
     await client.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     await client.send("Network.enable");
