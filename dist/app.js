@@ -109,6 +109,7 @@ const TIMELINE = [
 const state = {
   kwh: Number(localStorage.getItem("carbonpulse-kwh")) || BASELINE_KWH,
   completed: JSON.parse(localStorage.getItem("carbonpulse-actions") || '["temperature"]'),
+  consent: localStorage.getItem("carbonpulse-consent") === "true",
   mapLayer: "scope",
   mapTheme: localStorage.getItem("carbonpulse-map-theme") === "light" ? "light" : "dark",
   mapExtent: "townships",
@@ -631,6 +632,18 @@ function renderClimateCards() {
     : "Fallback demonstration data";
 }
 
+function renderCohortStatus() {
+  const status = $("#cohortStatus");
+  status.classList.toggle("consented", state.consent);
+  status.classList.toggle("opted-out", !state.consent);
+  $("#cohortStatusPill").textContent = state.consent
+    ? "Consent recorded · threshold pending"
+    : "Not opted in";
+  $("#cohortStatusText").textContent = state.consent
+    ? "1 of 50 homes · map continues to show the illustrative baseline until the minimum cohort threshold is met."
+    : "Showing illustrative 5-precinct baseline.";
+}
+
 function renderTimeline(index) {
   const selectedIndex = Math.max(0, Math.min(3, Number(index)));
   const item = { ...TIMELINE[selectedIndex] };
@@ -698,7 +711,10 @@ $("#menuButton").addEventListener("click", () => {
   $("#menuButton").setAttribute("aria-expanded", String(open));
 });
 
-$$('[data-open-bill]').forEach(button => button.addEventListener("click", () => openModal($("#billModal"))));
+$$('[data-open-bill]').forEach(button => button.addEventListener("click", () => {
+  $("#consentInput").checked = state.consent;
+  openModal($("#billModal"));
+}));
 $$('[data-close-modal]').forEach(button => button.addEventListener("click", () => closeModal($("#billModal"))));
 $("#privacyButton").addEventListener("click", () => openModal($("#privacyModal")));
 $$('[data-close-privacy]').forEach(button => button.addEventListener("click", () => closeModal($("#privacyModal"))));
@@ -723,10 +739,13 @@ $("#confirmBill").addEventListener("click", () => {
     return;
   }
   state.kwh = Math.round(value);
+  state.consent = $("#consentInput").checked;
   localStorage.setItem("carbonpulse-kwh", state.kwh);
+  localStorage.setItem("carbonpulse-consent", String(state.consent));
   $("#formError").textContent = "";
   renderEnergy();
   renderActions();
+  renderCohortStatus();
   closeModal($("#billModal"));
   showToast();
 });
@@ -758,6 +777,7 @@ document.addEventListener("keydown", event => {
 renderEnergy();
 renderActions();
 renderClimateCards();
+renderCohortStatus();
 renderScenario();
 renderTimeline(2);
 updateMapDisplayControls();
