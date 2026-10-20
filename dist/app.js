@@ -604,7 +604,13 @@ $("#billFile").addEventListener("change", event => {
   const file = event.target.files[0];
   if (!file) return;
   $("#uploadTitle").textContent = file.name;
-  $("#uploadHint").textContent = "Demo scan complete · suggested value ready for your confirmation";
+  $("#uploadHint").textContent = "Reference file attached locally · please confirm or enter your billed kWh below";
+});
+
+$("#loadSampleBill").addEventListener("click", () => {
+  $("#kwhInput").value = 270;
+  $("#uploadHint").textContent = "Sample 270 kWh value loaded for demonstration — click Confirm & analyse";
+  $("#formError").textContent = "";
 });
 
 $("#confirmBill").addEventListener("click", () => {

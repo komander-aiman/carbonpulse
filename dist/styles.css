@@ -419,6 +419,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .upload-zone small { margin-top: 3px; color: #80908a; font-size: 9px; }
 .or-divider { height: 1px; margin: 20px 0; background: var(--line); text-align: center; }
 .or-divider span { position: relative; top: -8px; padding: 0 10px; background: var(--paper); color: #929d99; font-size: 9px; }
+.sample-bill-button { min-height: 36px; margin-bottom: 14px; border-radius: 999px; }
 .field-label { display: block; margin-bottom: 7px; color: #53655e; font-size: 10px; font-weight: 800; }
 .input-unit { height: 48px; border: 1px solid #cdd8d1; border-radius: 10px; display: flex; align-items: center; overflow: hidden; background: #fff; }
 .input-unit:focus-within { border-color: var(--forest-500); box-shadow: 0 0 0 3px rgba(47,138,108,.1); }

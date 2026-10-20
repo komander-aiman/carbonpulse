@@ -275,11 +275,11 @@
               <div class="history-table">
                 <div class="history-head"><span>Period</span><span>Status</span><span>Usage</span><span>Est.
                     footprint</span></div>
-                <div><span>September 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong
+                <div><span>September 2026</span><span><i class="check-dot">✓</i> User confirmed</span><strong
                     data-kwh-unit>300 kWh</strong><span data-emissions-unit>222.0 kg CO₂e</span></div>
-                <div><span>August 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong>326
+                <div><span>August 2026</span><span>Demo baseline</span><strong>326
                     kWh</strong><span>241.2 kg CO₂e</span></div>
-                <div><span>July 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong>318
+                <div><span>July 2026</span><span>Demo baseline</span><strong>318
                     kWh</strong><span>235.3 kg CO₂e</span></div>
               </div>
             </article>
@@ -563,9 +563,10 @@
             <path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" />
           </svg></span>
         <strong id="uploadTitle">Choose a bill image</strong>
-        <small id="uploadHint">PNG, JPG or PDF · processed locally for this demo</small>
+        <small id="uploadHint">PNG, JPG or PDF · attached locally as your reference (never uploaded)</small>
       </label>
       <div class="or-divider"><span>or enter manually</span></div>
+      <button type="button" class="secondary-button sample-bill-button" id="loadSampleBill">Use sample bill (270 kWh)</button>
       <label class="field-label" for="kwhInput">Confirmed electricity usage</label>
       <div class="input-unit"><input id="kwhInput" type="number" min="1" max="3000" value="300"><span>kWh</span></div>
       <label class="consent-row"><input type="checkbox" id="consentInput"><span><b>Include my anonymized result in the
