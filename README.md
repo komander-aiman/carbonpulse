@@ -26,6 +26,6 @@ The app stores demo preferences in browser `localStorage`. No bill image or hous
 
 ## Map provider note
 
-The app uses CARTO Dark Matter or Positron when a Basemaps API key is available and automatically uses Esri's corresponding dark/light gray tiles when it is not. Copy `dist/config.example.js` to `dist/config.local.js`, add a website-restricted key, and run the app through the local server above. `config.local.js` is ignored by Git so the key is never committed.
+The app uses CARTO Dark Matter or Positron when a Basemaps API key is available and automatically uses Esri's corresponding dark/light gray tiles when it is not. Copy `dist/config.example.js` to `dist/config.local.js`, add a website-restricted key, and run the app through the local server above. `config.local.js` is optional and ignored by Git so the key is never committed. When the optional file is absent, the browser may show its failed request in DevTools; the app safely continues with the Esri fallback.
 
 Atmospheric values are regional model estimates, not township sensors. Household CO2e values and tree equivalents are explicitly labelled scenarios rather than audited inventory or offset results.

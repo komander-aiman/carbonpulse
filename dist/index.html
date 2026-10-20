@@ -10,7 +10,7 @@
   <title>CarbonPulse · My Energy</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIINfQ3ynJb+MZqjMZrF2dN/LhPVRA4hLw=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=20261020-3">
+  <link rel="stylesheet" href="styles.css?v=20261020-4">
 </head>
 
 <body>
@@ -388,10 +388,10 @@
             <div class="map-title-block">
               <span class="map-kicker">Sime Darby Property townships</span>
               <h2>Township climate pulse</h2>
-              <p id="mapLayerDescription">Illustrative household electricity footprint using the disclosed grid factor.</p>
+              <p id="mapLayerDescription">Illustrative monthly electricity-use scenario informed by GHG Protocol Scope 3 Category 11 (Use of Sold Products) using the 2024 provisional Peninsular Malaysia grid factor (0.740 kg CO₂e/kWh). Not an SDP corporate emissions inventory.</p>
             </div>
             <div class="map-layer-switcher" role="group" aria-label="Map data layer">
-              <button class="active" data-map-layer="scope">Precinct Scope 3</button>
+              <button class="active" data-map-layer="scope">Household Scope 3 scenario</button>
               <button data-map-layer="co2">Atmospheric CO₂</button>
               <button data-map-layer="air">Air quality & CO</button>
             </div>
@@ -494,7 +494,7 @@
 
           <div class="climate-source-note">
             <span>Data notes</span>
-            <p>Atmospheric and weather feeds: Open-Meteo with CAMS ENSEMBLE; global CO₂: Global Warming API. Values may fall back to labelled demo data when a feed or CORS is unavailable. Household figures are scenarios—not measured Scope 3 inventory results.</p>
+            <p>Atmospheric and weather feeds: Open-Meteo with CAMS ENSEMBLE; global CO₂: Global Warming API. Values may fall back to labelled demo data when a feed or CORS is unavailable. Household figures are scenarios—not measured Scope 3 inventory results. Method references: <a href="https://ghgprotocol.org/sites/default/files/2023-03/Scope3_Calculation_Guidance_0%5B1%5D.pdf" target="_blank" rel="noopener noreferrer">GHG Protocol Category 11</a>, <a href="https://myenergystats.st.gov.my/documents/d/guest/grid-emission-factor-gef-in-malaysia-2022-2024-provisional-" target="_blank" rel="noopener noreferrer">Energy Commission grid factor</a>, and <a href="https://www.simedarbyproperty.com/sites/default/files/2024-04/Sustainability-Report-2023.pdf" target="_blank" rel="noopener noreferrer">SDP Sustainability Report 2023</a>.</p>
           </div>
         </section>
 
@@ -613,8 +613,9 @@
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="config.local.js"></script>
-  <script src="app.js?v=20261020-1"></script>
+  <script>window.CARBONPULSE_CARTO_KEY = window.CARBONPULSE_CARTO_KEY || "";</script>
+  <script src="config.local.js" onerror="this.remove()"></script>
+  <script src="app.js?v=20261020-4"></script>
 </body>
 
 </html>

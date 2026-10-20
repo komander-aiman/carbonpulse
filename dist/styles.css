@@ -305,7 +305,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .map-weather-chip em { display: block; margin-top: 2px; color: #8da29a; font-size: 7px; font-style: normal; white-space: nowrap; }
 .map-fallback { position: absolute; z-index: 700; inset: 50% auto auto 50%; transform: translate(-50%,-50%); padding: 15px 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: #111d19; text-align: center; }
 .map-fallback strong,.map-fallback span { display: block; }.map-fallback span { margin-top: 3px; color:#8fa19a; font-size:9px; }
-.leaflet-control-zoom { margin-top: 135px !important; border: 0 !important; }
+.leaflet-control-zoom { margin-top: 180px !important; border: 0 !important; }
 .leaflet-control-zoom a { border: 1px solid rgba(255,255,255,.08) !important; background: rgba(13,20,18,.88) !important; color: #fff !important; }
 .leaflet-control-attribution { background: rgba(13,20,18,.7) !important; color: #6f817a !important; font-size: 7px !important; }
 .leaflet-control-attribution a { color: #9eb5ac !important; }
@@ -396,6 +396,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .climate-source-note { margin-top:15px; padding:14px 17px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.42); display:flex; gap:15px; }
 .climate-source-note span { flex:0 0 auto; color:var(--forest-700); font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.7px; }
 .climate-source-note p { margin:0; color:#83908b; font-size:8px; line-height:1.5; }
+.climate-source-note a { color: var(--forest-600); font-weight: 700; text-underline-offset: 2px; }
 
 .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; counter-reset: steps; }
 .steps-grid article { min-height: 300px; padding: 23px; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); box-shadow: var(--shadow); display: flex; flex-direction: column; }
@@ -550,8 +551,9 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .plan-card { grid-template-columns: auto auto 1fr; }
   .plan-saving { grid-column: 3; border-left: 0; padding: 0; text-align: left; }
   .climate-map-card { height: 680px; }
-  .map-layer-switcher { top: 104px; left: 22px; right: auto; }
-  .map-display-controls { top: 151px; left: 22px; right: auto; }
+  .map-layer-switcher { top: 195px; left: 22px; right: auto; }
+  .map-display-controls { top: 242px; left: 22px; right: auto; }
+  .leaflet-control-zoom { margin-top: 295px !important; }
   .climate-metric-grid { grid-template-columns: 1fr 1fr; }
   .climate-metric-grid article:last-child { grid-column: 1/-1; }
   .timeline-panel { grid-template-columns: 1fr; }
@@ -587,13 +589,13 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .climate-map-card { height: 720px; }
   .map-title-block { top: 20px; left: 18px; right: 18px; max-width: none; }
   .map-title-block p { max-width: 290px; }
-  .map-layer-switcher { top: 108px; left: 14px; right: 14px; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .map-layer-switcher { top: 190px; left: 14px; right: 14px; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
   .map-layer-switcher::-webkit-scrollbar { display: none; }
   .map-layer-switcher button { flex: 0 0 auto; white-space: nowrap; }
-  .map-display-controls { top: 153px; left: 14px; right: 14px; }
+  .map-display-controls { top: 237px; left: 14px; right: 14px; }
   .map-weather-chip { left: 14px; right: 14px; bottom: 52px; justify-content: space-between; }
   .map-legend { left: 14px; right: auto; bottom: 14px; }
-  .leaflet-control-zoom { margin-top: 205px !important; }
+  .leaflet-control-zoom { margin-top: 290px !important; }
   .timeline-panel { padding: 21px; }
   .timeline-stops button { font-size: 11px; }
   .timeline-stops button small { display: none; }

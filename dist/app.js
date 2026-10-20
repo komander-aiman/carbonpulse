@@ -85,7 +85,7 @@ const TIMELINE = [
     badge: "SDP baseline",
     ppm: 416.4,
     title: "A baseline for corporate action",
-    description: "The SDP baseline helps frame a 2030 Scope 1 and 2 target. Household electricity remains a separate, consent-based estimate.",
+    description: "SDP reports that its 40% Scope 1 and 2 reduction target by 2030 is measured from an FY2021 baseline and referenced against SBTi. SDP describes Scope 3 as being baselined more broadly.",
     comparison: "+138.4 ppm from 1850"
   },
   {
@@ -101,7 +101,7 @@ const TIMELINE = [
     badge: "SDP target",
     ppm: 427.4,
     title: "A portfolio target—not a ppm forecast",
-    description: "The −40% Scope 1 and 2 target is shown beside resident scenarios without claiming that household estimates are automatically credited to it.",
+    description: "SDP's reported 40% Scope 1 and 2 reduction target is shown beside a separate household use-phase scenario. The resident estimate is not credited to SDP's target or presented as a published post-handover baseline.",
     comparison: "Live ppm held as context · no global forecast"
   }
 ];
@@ -602,7 +602,7 @@ function setMapLayer(layer) {
   state.mapLayer = layer;
   $$("[data-map-layer]").forEach(button => button.classList.toggle("active", button.dataset.mapLayer === layer));
   const descriptions = {
-    scope: "Illustrative household electricity footprint using the disclosed 0.740 grid factor.",
+    scope: "Illustrative monthly electricity-use scenario informed by GHG Protocol Scope 3 Category 11 (Use of Sold Products) using the 2024 provisional Peninsular Malaysia grid factor (0.740 kg CO₂e/kWh). Not an SDP corporate emissions inventory.",
     co2: "Regional atmospheric CO₂ model estimates at approximately 11 km resolution.",
     air: "Live US AQI with carbon monoxide and PM2.5 context from CAMS ENSEMBLE."
   };
