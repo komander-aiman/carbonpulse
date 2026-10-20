@@ -55,10 +55,21 @@ function quantile(sorted: readonly number[], q: number): number {
   return sorted[lower]! * (1 - weight) + sorted[upper]! * weight;
 }
 
-/** Demo and unconsented rows are excluded here, not only in the query layer. */
-export function eligibleRecords(records: readonly CohortRecord[]): CohortRecord[] {
+/**
+ * Demo and unconsented rows are excluded here, not only in the query layer.
+ * Demo rows are only admitted when the caller explicitly asks for the demo
+ * namespace, which is rendered separately and never written to a real cohort.
+ */
+export function eligibleRecords(
+  records: readonly CohortRecord[],
+  namespace: "real" | "demo" = "real",
+): CohortRecord[] {
   return records.filter(
-    (record) => record.consented && !record.isDemo && record.confirmed && record.kwh > 0,
+    (record) =>
+      record.consented &&
+      record.confirmed &&
+      record.kwh > 0 &&
+      (namespace === "demo" ? record.isDemo : !record.isDemo),
   );
 }
 
@@ -70,10 +81,15 @@ export function eligibleRecords(records: readonly CohortRecord[]): CohortRecord[
 export function cohortStats(
   records: readonly CohortRecord[],
   factor: FactorVersion,
-  options: { readonly minCohort?: number; readonly roundCounts?: boolean } = {},
+  options: {
+    readonly minCohort?: number;
+    readonly roundCounts?: boolean;
+    readonly namespace?: "real" | "demo";
+  } = {},
 ): CohortResult {
   const minCohort = options.minCohort ?? MIN_COHORT_SIZE;
-  const eligible = eligibleRecords(records);
+  const namespace = options.namespace ?? "real";
+  const eligible = eligibleRecords(records, namespace);
   if (eligible.length === 0) {
     return { suppressed: true, reason: "no_eligible_records", minimumCohort: minCohort };
   }
@@ -81,7 +97,9 @@ export function cohortStats(
     return { suppressed: true, reason: "cohort_too_small", minimumCohort: minCohort };
   }
   const values = eligible.map((record) => record.kwh).sort((a, b) => a - b);
-  const consented = records.filter((record) => record.consented && !record.isDemo).length;
+  const consented = records.filter(
+    (record) => record.consented && (namespace === "demo" ? record.isDemo : !record.isDemo),
+  ).length;
   const medianKwh = quantile(values, 0.5);
   return {
     suppressed: false,

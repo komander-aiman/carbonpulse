@@ -44,14 +44,13 @@ export function buildCommunityViewModel(
   );
 
   const useDemo = DEMO_MODE && realRows.length < 10;
-  const records: CohortRecord[] = useDemo
-    ? toRecords(demoCohort(), township)
-    : realRows;
+  const namespace = useDemo ? "demo" : "real";
+  const records: CohortRecord[] = useDemo ? toRecords(demoCohort(), township) : realRows;
 
-  const overall = cohortStats(records, factor);
+  const overall = cohortStats(records, factor, { namespace });
   const subzones: SubzoneStat[] = SUBZONES.map((subzone) => {
     const rows = records.filter((record) => record.subzone === subzone.id);
-    return { id: subzone.id, name: subzone.name, result: cohortStats(rows, factor) };
+    return { id: subzone.id, name: subzone.name, result: cohortStats(rows, factor, { namespace }) };
   });
 
   return {

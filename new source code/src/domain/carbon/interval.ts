@@ -14,17 +14,9 @@ export const MAX_GAP_MINUTES = 120;
 export const MAX_COVERAGE_GAP_PCT = 2;
 export const DEFAULT_INTERVAL_MINUTES = 30;
 
-const MALAYSIA_OFFSET_MINUTES = 8 * 60;
-
 function parseInstant(value: string): number | null {
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? null : parsed;
-}
-
-function malaysiaDayStart(ms: number): number {
-  const shifted = ms + MALAYSIA_OFFSET_MINUTES * 60_000;
-  const dayStartShifted = Math.floor(shifted / 86_400_000) * 86_400_000;
-  return dayStartShifted - MALAYSIA_OFFSET_MINUTES * 60_000;
 }
 
 function median(values: number[]): number {

@@ -10,8 +10,10 @@ import { getActiveFactor } from "./factors";
 const I_MIN = 0.45;
 const I_MAX = 1.0;
 const DEMAND_COEFF = 1;
-const SOLAR_COEFF = 0.38;
-const BASELOAD_OFFSET = 0.45;
+const SOLAR_COEFF = 0.34;
+const BASELOAD_OFFSET = 0.5;
+/** Circular smoothing passes applied to each 24-hour cycle. */
+const SMOOTHING_PASSES = 5;
 
 const MODEL_VERSION: ModelVersion = {
   id: "diurnal-1.0.0+2026-10",
@@ -26,20 +28,20 @@ const MODEL_VERSION: ModelVersion = {
 type Keyframe = readonly [hour: number, value: number];
 
 const DEMAND_KEYFRAMES: readonly Keyframe[] = [
-  [0, 0.4],
-  [4, 0.34],
-  [6, 0.42],
-  [8, 0.62],
+  [0, 0.52],
+  [4, 0.46],
+  [6, 0.5],
+  [8, 0.64],
   [10, 0.7],
   [12, 0.72],
   [14, 0.7],
   [16, 0.76],
-  [18, 0.88],
-  [20, 1.0],
-  [21, 0.95],
-  [22, 0.78],
-  [23, 0.55],
-  [24, 0.4],
+  [18, 0.86],
+  [20, 0.97],
+  [21, 0.93],
+  [22, 0.84],
+  [23, 0.7],
+  [24, 0.52],
 ];
 
 const SOLAR_KEYFRAMES: readonly Keyframe[] = [
@@ -90,10 +92,38 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Unnormalized intensity in factor units, before solving for k. */
-function rawShape(month: number, hour: number): number {
+function unsmoothedShape(month: number, hour: number): number {
   const demand = interpolate(DEMAND_KEYFRAMES, hour);
   const solar = interpolate(SOLAR_KEYFRAMES, hour) * (MONTH_SOLAR_SCALE[month - 1] ?? 1);
   return DEMAND_COEFF * demand + BASELOAD_OFFSET - SOLAR_COEFF * solar;
+}
+
+/**
+ * Circular three-point smoothing keeps the evening ramp continuous across the
+ * 23:00 → 00:00 wrap. The published gate forbids adjacent-hour jumps above
+ * 0.08 kg CO₂e/kWh, and an abrupt nightly drop would fail it.
+ */
+function smoothedSeries(month: number): readonly number[] {
+  let series = Array.from({ length: 24 }, (_, hour) => unsmoothedShape(month, hour));
+  for (let pass = 0; pass < SMOOTHING_PASSES; pass += 1) {
+    series = series.map((_, hour) => {
+      const previous = series[(hour + 23) % 24] ?? 0;
+      const next = series[(hour + 1) % 24] ?? 0;
+      return previous * 0.25 + (series[hour] ?? 0) * 0.5 + next * 0.25;
+    });
+  }
+  return series;
+}
+
+const shapeCache = new Map<number, readonly number[]>();
+
+function rawShape(month: number, hour: number): number {
+  let series = shapeCache.get(month);
+  if (!series) {
+    series = smoothedSeries(month);
+    shapeCache.set(month, series);
+  }
+  return series[hour] ?? 0;
 }
 
 function daysInMonth(month: number): number {
