@@ -109,8 +109,8 @@
               <div class="status-line"><span></span> September usage analysed</div>
               <p class="metric-label">Recorded electricity use</p>
               <div class="hero-value"><strong data-kwh>300</strong><span>kWh</span></div>
-              <div class="trend good"><span>↓ 8%</span> compared with August</div>
-              <p class="hero-note">That is 26 kWh less than your previous billing period.</p>
+              <div class="trend good" id="usageTrend"><span id="usageTrendPercent">↓ 8.0%</span><b id="usageTrendComparison">26 kWh less than August</b></div>
+              <p class="hero-note" id="usageTrendNote">That is 26 kWh less than your previous billing period.</p>
               <button class="light-button" data-nav-to="energy">See energy details <span>→</span></button>
             </div>
             <div class="hero-visual" aria-label="Monthly energy pulse visualization">
@@ -123,7 +123,7 @@
                   <path d="M17 53c5.2-14.2 13.9-24.8 27.5-32.2" />
                 </svg>
               </div>
-              <div class="pulse-chip chip-one"><i></i><span><b>26 kWh</b> less</span></div>
+              <div class="pulse-chip chip-one"><i></i><span><b id="heroDifference">26 kWh</b><span id="heroDifferenceDirection">less</span></span></div>
               <div class="pulse-chip chip-two"><i></i><span><b>0.740</b> factor</span></div>
             </div>
           </section>
@@ -152,9 +152,9 @@
                 <span class="evidence-tag recorded">Your goal</span>
               </div>
               <p>Monthly target</p>
-              <div class="metric-number"><strong>270</strong><span>kWh</span></div>
+              <div class="metric-number"><strong id="goalTarget">270</strong><span>kWh</span></div>
               <div class="goal-progress"><span id="goalBar"></span></div>
-              <small><b id="goalGap">30 kWh</b> to go · target is 10% lower</small>
+              <small><b id="goalGap">30 kWh</b><span id="goalGapSuffix"> to go · target is 10% lower</span></small>
             </article>
 
             <article class="metric-card action-card-summary">
@@ -179,7 +179,7 @@
                 </div>
                 <div class="legend"><span class="legend-dot"></span>Recorded kWh</div>
               </div>
-              <div class="chart-summary"><strong>−12.5%</strong><span>since April</span></div>
+              <div class="chart-summary"><strong id="overviewTrendPercent">−12.5%</strong><span>since April</span></div>
               <div class="bar-chart" id="barChart" aria-label="Monthly electricity usage bar chart"></div>
             </article>
 
@@ -198,7 +198,7 @@
                 <span class="plant">⌁</span>
               </div>
               <p>Set your air conditioner to 24–26°C and use the timer at night.</p>
-              <div class="potential"><span>Potential</span><strong>12–18 kWh / month</strong></div>
+              <div class="potential"><span>Illustrative potential</span><strong id="overviewActionPotential">12–18 kWh / month</strong></div>
               <button class="secondary-button" data-nav-to="actions">View action plan</button>
             </article>
           </div>
@@ -304,8 +304,8 @@
         <section class="view" id="view-actions" data-view-panel="actions">
           <div class="page-heading compact-heading">
             <div><span class="eyebrow">Action plan</span>
-              <h1>Your simplest route to 270 kWh.</h1>
-              <p>Three practical actions, chosen for your household profile.</p>
+              <h1 id="actionPlanHeading">Your simplest route to 270 kWh.</h1>
+              <p id="actionPlanSubtitle">Three practical actions, chosen for your household profile.</p>
             </div>
             <div class="plan-score"><strong id="planPercent">33%</strong><span>plan complete</span></div>
           </div>
@@ -323,7 +323,7 @@
                 <div class="tip-detail">Cooling is your largest self-reported appliance category. A small thermostat
                   adjustment is an easy, repeatable habit.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>12–18</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="temperatureSaving">12–18</strong><small>kWh / month</small></div>
             </article>
             <article class="plan-card" data-action-id="timer">
               <button class="action-check" aria-label="Mark timer action complete"></button>
@@ -340,7 +340,7 @@
                 <div class="tip-detail">Set one reusable timer on the remote tonight. Keep a fan on low after the air
                   conditioner stops.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>8–12</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="timerSaving">8–12</strong><small>kWh / month</small></div>
             </article>
             <article class="plan-card" data-action-id="standby">
               <button class="action-check" aria-label="Mark standby action complete"></button>
@@ -355,17 +355,18 @@
                 <div class="tip-detail">Place the power strip where the switch is visible. Add it to your leaving-home
                   routine.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>3–5</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="standbySaving">3–5</strong><small>kWh / month</small></div>
             </article>
           </div>
           <div class="plan-footer">
-            <div><span class="eyebrow light">Your target</span><strong>Up to 35 kWh</strong>
-              <p>potential monthly reduction from this plan</p>
+            <div><span class="eyebrow light">Your target</span><strong id="combinedPotential">Up to 29 kWh</strong>
+              <p>combined illustrative potential · adjusted for overlapping cooling actions</p>
+              <small class="overlap-note">Temperature and timer savings are not fully additive; their combined estimate includes a 20% overlap discount.</small>
             </div>
             <div class="target-ring"><svg viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="39" />
                 <circle class="ring-progress" cx="50" cy="50" r="39" />
-              </svg><span><b>30</b> kWh<br>goal</span></div>
+              </svg><span id="targetRingLabel"><b>30</b> kWh<br>goal</span></div>
           </div>
         </section>
 

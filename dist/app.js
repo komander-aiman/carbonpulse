@@ -1,4 +1,8 @@
 const FACTOR = 0.740;
+const BASELINE_KWH = 300;
+const TARGET_KWH = Math.round(BASELINE_KWH * 0.90);
+const AUGUST_KWH = 326;
+const APRIL_KWH = 343;
 const PREINDUSTRIAL_CO2 = 278.0;
 const TREE_ABSORPTION_KG_MONTH = 2.17;
 const CARTO_TILE_URLS = {
@@ -103,7 +107,7 @@ const TIMELINE = [
 ];
 
 const state = {
-  kwh: Number(localStorage.getItem("carbonpulse-kwh")) || 300,
+  kwh: Number(localStorage.getItem("carbonpulse-kwh")) || BASELINE_KWH,
   completed: JSON.parse(localStorage.getItem("carbonpulse-actions") || '["temperature"]'),
   mapLayer: "scope",
   mapTheme: localStorage.getItem("carbonpulse-map-theme") === "light" ? "light" : "dark",
@@ -128,6 +132,7 @@ const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const formatNumber = value => new Intl.NumberFormat("en-MY", { maximumFractionDigits: 0 }).format(value);
 const safeNumber = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const formatFeedTime = value => {
   const time = typeof value === "string" ? value.split("T")[1]?.slice(0, 5) : "";
   return time ? `${time} MYT` : "time unavailable";
@@ -155,6 +160,60 @@ function renderBarChart() {
     </div>`).join("");
 }
 
+function renderLineChart() {
+  const values = [...BASE_USAGE, state.kwh];
+  const xPositions = [40, 166, 292, 418, 544, 670];
+  const valueMin = Math.min(...values);
+  const valueMax = Math.max(...values);
+  const padding = Math.max(10, (valueMax - valueMin) * 0.15);
+  const domainMin = Math.max(0, valueMin - padding);
+  const domainMax = valueMax + padding;
+  const yFor = value => 30 + ((domainMax - value) / Math.max(1, domainMax - domainMin)) * 195;
+  const points = values.map((value, index) => `${xPositions[index]},${yFor(value).toFixed(1)}`);
+  const linePath = points.map((point, index) => `${index ? "L" : "M"}${point}`).join(" ");
+
+  $("#chartLine").setAttribute("d", linePath);
+  $("#chartArea").setAttribute("d", `${linePath} L670,225 L40,225 Z`);
+  $$("#chartPoints circle").forEach((circle, index) => circle.setAttribute("cy", yFor(values[index]).toFixed(1)));
+}
+
+function getActionSavings() {
+  return {
+    temperature: {
+      min: Math.max(4, Math.round(state.kwh * 0.04)),
+      max: Math.max(6, Math.round(state.kwh * 0.06))
+    },
+    timer: {
+      min: Math.max(3, Math.round(state.kwh * 0.027)),
+      max: Math.max(5, Math.round(state.kwh * 0.04))
+    },
+    standby: {
+      min: Math.max(2, Math.round(state.kwh * 0.01)),
+      max: Math.max(3, Math.round(state.kwh * 0.017))
+    }
+  };
+}
+
+function getCombinedPotential(savings, actionIds = ["temperature", "timer", "standby"]) {
+  const included = new Set(actionIds);
+  let total = included.has("standby") ? savings.standby.max : 0;
+  const hasTemperature = included.has("temperature");
+  const hasTimer = included.has("timer");
+
+  if (hasTemperature && hasTimer) {
+    total += Math.round((savings.temperature.max + savings.timer.max) * 0.8);
+  } else {
+    if (hasTemperature) total += savings.temperature.max;
+    if (hasTimer) total += savings.timer.max;
+  }
+  return total;
+}
+
+function formatPercentChange(percent) {
+  if (Math.abs(percent) < 0.05) return "0.0%";
+  return `${percent > 0 ? "+" : "−"}${Math.abs(percent).toFixed(1)}%`;
+}
+
 function renderEnergy() {
   const emissions = state.kwh * FACTOR;
   $$('[data-kwh]').forEach(el => el.textContent = formatNumber(state.kwh));
@@ -163,13 +222,49 @@ function renderEnergy() {
   $$('[data-emissions-unit]').forEach(el => el.textContent = `${emissions.toFixed(1)} kg CO₂e`);
   $("#kwhInput").value = state.kwh;
   $("#emissionsBar").style.width = `${Math.min(100, emissions / 3)}%`;
-  $("#goalBar").style.width = `${Math.min(100, 270 / state.kwh * 100)}%`;
-  const gap = Math.max(0, state.kwh - 270);
+  $("#goalTarget").textContent = TARGET_KWH;
+  const targetProgress = clamp(((BASELINE_KWH - state.kwh) / (BASELINE_KWH - TARGET_KWH)) * 100, 0, 100);
+  $("#goalBar").style.width = `${targetProgress}%`;
+  const gap = Math.max(0, state.kwh - TARGET_KWH);
   $("#goalGap").textContent = gap ? `${formatNumber(gap)} kWh` : "Goal reached";
+  $("#goalGapSuffix").textContent = gap ? " to go · target is 10% lower" : " · fixed 10% reduction target";
+
+  const augustDifference = state.kwh - AUGUST_KWH;
+  const augustPercent = augustDifference / AUGUST_KWH * 100;
+  const usageTrend = $("#usageTrend");
+  usageTrend.classList.toggle("good", augustDifference < 0);
+  usageTrend.classList.toggle("bad", augustDifference > 0);
+  usageTrend.classList.toggle("neutral", augustDifference === 0);
+  $("#usageTrendPercent").textContent = augustDifference === 0
+    ? "→ 0.0%"
+    : `${augustDifference < 0 ? "↓" : "↑"} ${Math.abs(augustPercent).toFixed(1)}%`;
+  const differenceText = augustDifference === 0
+    ? "Same usage as August"
+    : `${formatNumber(Math.abs(augustDifference))} kWh ${augustDifference < 0 ? "less" : "more"} than August`;
+  $("#usageTrendComparison").textContent = differenceText;
+  $("#usageTrendNote").textContent = augustDifference === 0
+    ? "Your usage matches the August demo baseline."
+    : `That is ${formatNumber(Math.abs(augustDifference))} kWh ${augustDifference < 0 ? "less" : "more"} than the August demo baseline.`;
+  $("#heroDifference").textContent = `${formatNumber(Math.abs(augustDifference))} kWh`;
+  $("#heroDifferenceDirection").textContent = augustDifference === 0 ? "same" : augustDifference < 0 ? "less" : "more";
+
+  const aprilPercent = (state.kwh - APRIL_KWH) / APRIL_KWH * 100;
+  $("#overviewTrendPercent").textContent = formatPercentChange(aprilPercent);
   renderBarChart();
+  renderLineChart();
 }
 
 function renderActions() {
+  const savings = getActionSavings();
+  Object.entries(savings).forEach(([id, range]) => {
+    $(`#${id}Saving`).textContent = `${range.min}–${range.max}`;
+  });
+  $("#overviewActionPotential").textContent = `${savings.temperature.min}–${savings.temperature.max} kWh / month`;
+  $("#combinedPotential").textContent = `Up to ${getCombinedPotential(savings)} kWh`;
+  $("#actionPlanHeading").textContent = `Your simplest route to ${TARGET_KWH} kWh.`;
+  const usageBand = state.kwh < 250 ? "Low" : state.kwh <= 350 ? "Typical" : "High Cooling Load";
+  $("#actionPlanSubtitle").textContent = `${usageBand} household profile · illustrative savings scale with your confirmed monthly usage.`;
+
   $$(".plan-card").forEach(card => {
     const isDone = state.completed.includes(card.dataset.actionId);
     card.classList.toggle("completed", isDone);
@@ -181,6 +276,14 @@ function renderActions() {
   $("#actionCount").textContent = 3 - done;
   $("#planPercent").textContent = `${Math.round(done / 3 * 100)}%`;
   $$(".action-dots i").forEach((dot, index) => dot.classList.toggle("done", index < done));
+  const gap = Math.max(0, state.kwh - TARGET_KWH);
+  const completedPotential = getCombinedPotential(savings, state.completed);
+  const reductionProgress = gap === 0 ? 100 : clamp(completedPotential / gap * 100, 0, 100);
+  const circumference = 2 * Math.PI * 39;
+  $(".ring-progress").style.strokeDashoffset = `${circumference * (1 - reductionProgress / 100)}`;
+  $("#targetRingLabel").innerHTML = gap
+    ? `<b>${formatNumber(gap)}</b> kWh<br>goal`
+    : "<b>Reached</b><br>goal";
   localStorage.setItem("carbonpulse-actions", JSON.stringify(state.completed));
 }
 
@@ -623,6 +726,7 @@ $("#confirmBill").addEventListener("click", () => {
   localStorage.setItem("carbonpulse-kwh", state.kwh);
   $("#formError").textContent = "";
   renderEnergy();
+  renderActions();
   closeModal($("#billModal"));
   showToast();
 });

@@ -92,7 +92,10 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .hero-value span { color: var(--lime); font-size: 18px; font-weight: 700; }
 .trend { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; color: #d6e3dd; font-size: 12px; }
 .trend span { padding: 4px 8px; border-radius: 20px; font-weight: 800; }
+.trend b { font-weight: 600; }
 .trend.good span { background: rgba(185,239,116,.14); color: var(--lime); }
+.trend.bad span { background: rgba(249,115,22,.16); color: #ffab70; }
+.trend.neutral span { background: rgba(255,255,255,.1); color: #d6e3dd; }
 .hero-note { margin: 12px 0 21px; color: #afc4bc; font-size: 13px; }
 .hero-visual { position: relative; min-height: 235px; display: grid; place-items: center; }
 .pulse-core { width: 154px; height: 154px; border-radius: 50%; background: var(--lime); color: var(--forest-950); display: grid; place-items: center; z-index: 2; box-shadow: 0 0 70px rgba(185,239,116,.24); }
@@ -243,6 +246,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .plan-footer { margin-top: 18px; padding: 28px 35px; border-radius: 18px; color: #fff; background: var(--forest-800); display: flex; align-items: center; justify-content: space-between; }
 .plan-footer > div:first-child strong { display: block; margin-top: 6px; color: var(--lime); font: 800 28px "Manrope",sans-serif; }
 .plan-footer p { margin: 0; color: #aac0b7; font-size: 11px; }
+.plan-footer .overlap-note { display: block; max-width: 620px; margin-top: 6px; color: #8fa9a0; font-size: 10px; line-height: 1.45; }
 .target-ring { width: 90px; height: 90px; position: relative; }
 .target-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .target-ring circle { fill: none; stroke: rgba(255,255,255,.15); stroke-width: 8; }
