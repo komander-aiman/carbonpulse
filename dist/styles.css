@@ -295,7 +295,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .map-weather-chip em { display: block; margin-top: 2px; color: #8da29a; font-size: 7px; font-style: normal; white-space: nowrap; }
 .map-fallback { position: absolute; z-index: 700; inset: 50% auto auto 50%; transform: translate(-50%,-50%); padding: 15px 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: #111d19; text-align: center; }
 .map-fallback strong,.map-fallback span { display: block; }.map-fallback span { margin-top: 3px; color:#8fa19a; font-size:9px; }
-.leaflet-control-zoom { margin-top: 105px !important; border: 0 !important; }
+.leaflet-control-zoom { margin-top: 135px !important; border: 0 !important; }
 .leaflet-control-zoom a { border: 1px solid rgba(255,255,255,.08) !important; background: rgba(13,20,18,.88) !important; color: #fff !important; }
 .leaflet-control-attribution { background: rgba(13,20,18,.7) !important; color: #6f817a !important; font-size: 7px !important; }
 .leaflet-control-attribution a { color: #9eb5ac !important; }
@@ -440,6 +440,72 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
 .toast > span { width: 27px; height: 27px; border-radius: 50%; background: var(--lime); color: var(--forest-950); display: grid; place-items: center; font-weight: 800; }
 .toast p { margin: 0; font-size: 10px; }.toast strong,.toast small{display:block}.toast small{color:#aec2ba;margin-top:2px}
 
+/* Readability baseline: keep operational and explanatory text legible at 100% browser zoom. */
+.demo-badge, .eyebrow { font-size: 12px; }
+.pulse-chip { font-size: 12px; }
+.evidence-tag, .impact-pill, .scenario-label { font-size: 11px; }
+.metric-card small, .evidence-row small { font-size: 12px; line-height: 1.45; }
+.inline-link, .chart-summary span { font-size: 13px; }
+.legend, .potential { font-size: 12px; }
+.potential strong { font-size: 13px; }
+.bar-column .bar-value, .bar-column .bar-label, .line-labels { font-size: 11px; }
+.precinct-stat small { font-size: 11px; }
+.history-table { font-size: 13px; }
+.history-table .history-head { font-size: 11px; }
+.check-dot { font-size: 10px; }
+.formula span, .formula-result span { font-size: 12px; }
+.assumption p { font-size: 12px; }
+.source-note { font-size: 11px; }
+.plan-score span { font-size: 12px; }
+.plan-meta, .plan-saving span, .plan-saving small { font-size: 11px; }
+.plan-copy > p, .plan-footer p { font-size: 13px; }
+.tip-toggle, .tip-detail { font-size: 12px; }
+.target-ring span { font-size: 11px; }
+.live-data-state { min-width: 210px; font-size: 12px; }
+.live-data-state b { font-size: 13px; }
+
+.map-kicker { font-size: 11px; }
+.map-title-block p { font-size: 12px; }
+.map-layer-switcher button { min-height: 36px; padding-inline: 14px; font-size: 11px; }
+.map-display-controls button { min-height: 34px; padding-inline: 12px; font-size: 11px; }
+.map-legend { padding: 10px 12px; font-size: 11px; }
+.map-weather-chip small { font-size: 10px; }
+.map-weather-chip em { margin-top: 4px; font-size: 10px; }
+.map-fallback span { font-size: 11px; }
+.leaflet-control-attribution { font-size: 10px !important; }
+.marker-core { min-width: 82px; padding: 8px 11px 7px; }
+.marker-core strong { font-size: 14px; }
+.marker-core small { font-size: 9px; }
+.marker-name { top: 98px; font-size: 11px; }
+.leaflet-popup-content { font-size: 12px; }
+
+.climate-metric-head { font-size: 11px; }
+.climate-metric-head em { font-size: 10px; }
+.climate-metric-grid article > strong small { font-size: 12px; }
+.climate-metric-grid article > p { font-size: 12px; line-height: 1.45; }
+.simulator-intro p { font-size: 14px; line-height: 1.55; }
+.timeline-year em { font-size: 10px; }
+.timeline-copy p { font-size: 13px; }
+.timeline-reading small, .timeline-reading span { font-size: 11px; }
+.timeline-stops button { font-size: 12px; }
+.timeline-stops button small { font-size: 10px; }
+.timeline-assets span, .timeline-caution { font-size: 11px; }
+.whatif-controls label { font-size: 12px; }
+.range-labels { font-size: 11px; }
+.whatif-controls > p { font-size: 12px; }
+.whatif-equation { font-size: 11px; }
+.whatif-stats span, .corridor-progress > div, .corridor-progress small { font-size: 11px; }
+.climate-source-note span { font-size: 11px; }
+.climate-source-note p { font-size: 12px; }
+
+.steps-grid p { font-size: 14px; }
+.steps-grid small { font-size: 11px; }
+.trust-panel p, .trust-panel li { font-size: 13px; }
+.upload-zone small, .or-divider span { font-size: 11px; }
+.field-label, .consent-row b { font-size: 12px; }
+.consent-row small { font-size: 11px; }
+.form-error, .privacy-list p, .toast p { font-size: 12px !important; }
+
 @media (max-width: 1100px) {
   .sidebar { width: 215px; }
   .page-wrap { margin-left: 215px; }
@@ -453,7 +519,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .precinct-banner .outline-button { grid-column: 1/-1; width: fit-content; }
   .steps-grid { grid-template-columns: repeat(2,1fr); }
   .map-title-block { max-width: 270px; }
-  .map-layer-switcher button { padding: 0 9px; font-size: 8px; }
+  .map-layer-switcher button { padding: 0 10px; font-size: 11px; }
   .whatif-grid { grid-template-columns: .95fr 1.05fr; }
 }
 
@@ -517,7 +583,7 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .map-legend { left: 14px; right: auto; bottom: 14px; }
   .leaflet-control-zoom { margin-top: 205px !important; }
   .timeline-panel { padding: 21px; }
-  .timeline-stops button { font-size: 8px; }
+  .timeline-stops button { font-size: 11px; }
   .timeline-stops button small { display: none; }
   .timeline-assets { grid-template-columns: repeat(2,1fr); }
   .whatif-controls,.whatif-result { padding: 25px 21px; }
