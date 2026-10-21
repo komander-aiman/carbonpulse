@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { EvidenceRow, EvidenceTag, Notice } from "@/components/evidence";
-import { ScenarioPanel, ConsentToggle } from "./community-client";
+import { ConsentToggle, ScenarioPanel } from "./community-client";
 import { currentHousehold } from "@/lib/current-household";
 import { buildEnergyViewModel } from "@/lib/view-model";
 import { buildCommunityViewModel } from "@/lib/community-view";
@@ -9,6 +9,9 @@ import { getActiveFactor } from "@/domain/carbon/factors";
 import { PRECINCT_METRICS } from "@/db/demo";
 import { formatKwh, formatKg } from "@/lib/format";
 import { ContextSection } from "@/components/context-section";
+import { ClimateExplorer } from "@/components/climate-explorer";
+import { loadClimate } from "@/lib/climate";
+import { DEMO_MODE } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -25,22 +28,33 @@ export default async function CommunityPage() {
     consentGranted,
   );
   const factor = getActiveFactor();
+  // Demo mode makes no external calls: the snapshot falls back to recorded
+  // values and every badge reads Fallback rather than claiming a live feed.
+  const climate = await loadClimate(!DEMO_MODE);
 
   return (
     <>
       <div className="page-heading compact-heading">
         <div>
-          <span className="eyebrow">Precinct pulse</span>
-          <h1>See how shared goals add up.</h1>
+          <span className="eyebrow">Precinct pulse · City of Elmina</span>
+          <h1>From global climate to local action.</h1>
           <p>
-            Cohort statistics come from consenting records only. The sliders below are a scenario, not a prediction or
-            a measured township outcome.
+            Explore live atmospheric context beside transparent household energy scenarios. Cohort statistics use
+            consenting records only.
           </p>
         </div>
         <span className="scenario-label">What-if model</span>
       </div>
 
       <EvidenceRow />
+
+      <section className="section-gap">
+        <ClimateExplorer snapshot={climate} factor={factor} isDemo={DEMO_MODE} />
+      </section>
+
+      <section className="section-gap">
+        <ScenarioPanel factor={factor} community={community} />
+      </section>
 
       {community.isDemoData ? (
         <Notice tone="warn" title="Demo cohort">
@@ -129,24 +143,41 @@ export default async function CommunityPage() {
           <section className="panel">
             <div className="panel-heading">
               <div>
-                <span className="eyebrow">Demo snapshot</span>
-                <h2>Participation</h2>
+                <span className="eyebrow">{community.isDemoData ? "Demo snapshot" : "Participation"}</span>
+                <h2>{community.isDemoData ? "Participation" : "Cohort activity"}</h2>
               </div>
-              <EvidenceTag label="Demo" />
+              <EvidenceTag label={community.isDemoData ? "Demo" : "Recorded"} />
             </div>
             <ul className="result-list">
-              <li>
-                <span>Opted-in households</span>
-                <strong>{PRECINCT_METRICS.optedIn}</strong>
-              </li>
-              <li>
-                <span>Monthly submissions</span>
-                <strong>{PRECINCT_METRICS.monthlySubmissions}</strong>
-              </li>
-              <li>
-                <span>Actions completed</span>
-                <strong>{PRECINCT_METRICS.actionsCompleted}</strong>
-              </li>
+              {community.isDemoData ? (
+                <>
+                  <li>
+                    <span>Opted-in households</span>
+                    <strong>{PRECINCT_METRICS.optedIn}</strong>
+                  </li>
+                  <li>
+                    <span>Monthly submissions</span>
+                    <strong>{PRECINCT_METRICS.monthlySubmissions}</strong>
+                  </li>
+                  <li>
+                    <span>Actions completed</span>
+                    <strong>{PRECINCT_METRICS.actionsCompleted}</strong>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <span>Consenting households</span>
+                    <strong>
+                      {community.overall.suppressed ? "Suppressed" : community.overall.householdCount}
+                    </strong>
+                  </li>
+                  <li>
+                    <span>Your consent</span>
+                    <strong>{consentGranted ? "Granted" : "Not granted"}</strong>
+                  </li>
+                </>
+              )}
               <li>
                 <span>Active factor</span>
                 <strong>
@@ -154,14 +185,16 @@ export default async function CommunityPage() {
                 </strong>
               </li>
             </ul>
+            {community.isDemoData ? null : (
+              <p className="source-note">
+                Seeded demonstration figures are not shown while demo mode is off. Counts come only from consenting
+                households in this cohort.
+              </p>
+            )}
             <p className="source-note">{factor.basis}. {factor.status} · {factor.year}.</p>
           </section>
         </aside>
       </div>
-
-      <section className="section-gap">
-        <ScenarioPanel factor={factor} community={community} />
-      </section>
 
       <section className="panel section-gap">
         <div className="panel-heading">

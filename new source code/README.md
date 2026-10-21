@@ -150,8 +150,8 @@ Last full run on this machine:
 | `npm audit --omit=dev` | **0 vulnerabilities** |
 | `tsc --noEmit` | clean |
 | `eslint` | 0 errors, 0 warnings |
-| Unit (Vitest) | **102 passed**, 7 files |
-| E2E (Playwright) | **77 passed, 1 skipped** (mobile LCP duplicate), Chromium + Pixel 7 |
+| Unit (Vitest) | **130 passed**, 9 files |
+| E2E (Playwright) | **91 passed, 1 skipped** (mobile LCP duplicate), Chromium + Pixel 7 + demo-off project |
 | axe WCAG 2.2 AA | 0 serious/critical, 8 routes + modal, contrast **enabled** |
 | Overview LCP | ~1.3 s at 4Ã— CPU throttle, 4G |
 | Third-party hosts | none beyond Google Fonts |
@@ -165,6 +165,30 @@ Reproduce:
 npm run typecheck && npm run lint && npm test
 npm run build && npm run test:e2e
 ```
+
+## Township climate map
+
+`/community` opens with a Leaflet map of five townships and three switchable
+layers:
+
+| Layer | What it shows | Why it is labelled that way |
+|---|---|---|
+| Household Scope 3 scenario | kg CO2e per home, derived from each precinct's illustrative baseline × the published factor | A what-if calculation, not a measured inventory |
+| Atmospheric CO2 | Regional ~11 km model concentration in ppm | Background concentration, not attributable to these households |
+| Air quality & CO | Live US AQI with PM2.5 and CO context | A regional CAMS estimate, not a township sensor |
+
+Below the map: a 1850–2030 macro-to-micro timeline, and a community what-if
+slider. Only the two Elmina pilot precincts respond to the slider; the others
+stay at baseline rather than pretending the whole map moves.
+
+All feeds are fetched **server-side** in `src/lib/climate.ts` and cached for 15
+minutes, so the browser never calls a third-party API directly and the CSP does
+not need to widen for it. With `DEMO_MODE=true` no external call is made at all
+and every badge reads Fallback. The map always has a text equivalent in a table,
+and a labelled fallback panel if the basemap tiles fail.
+
+Basemap tiles are Esri World Gray Canvas. Attribution is rendered by Leaflet and
+underlined for contrast.
 
 ## Security posture
 

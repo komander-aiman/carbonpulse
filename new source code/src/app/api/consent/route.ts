@@ -14,7 +14,7 @@ const schema = z.object({
 
 export async function GET() {
   const session = await ensureSession();
-  ensureHousehold(session.householdId, true);
+  ensureHousehold(session.householdId);
   return NextResponse.json({
     ok: true,
     data: {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  ensureHousehold(session.householdId, true);
+  ensureHousehold(session.householdId);
   const granted = parsed.data.action === "granted";
   const record = recordConsent(session.householdId, parsed.data.scope, granted, CONSENT_POLICY_VERSION);
 

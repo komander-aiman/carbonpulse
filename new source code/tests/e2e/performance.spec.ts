@@ -13,6 +13,10 @@ test.describe("performance budget", () => {
     // the two CPU-throttled measurements contend, making the budget flaky.
     test.skip(browserName !== "chromium" || isMobile, "Desktop Chromium only");
 
+    // Warm the route once so the measurement is not dominated by a cold
+    // compile or an empty cache; LCP budgets describe a repeat view.
+    await page.goto("/", { waitUntil: "load" });
+
     const client = await page.context().newCDPSession(page);
     await client.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     await client.send("Network.enable");

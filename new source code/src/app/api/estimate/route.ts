@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  const data = ensureHousehold(session.householdId, true);
+  const data = ensureHousehold(session.householdId);
   const factor = getActiveFactor();
   const profile = buildIntensityProfile();
 

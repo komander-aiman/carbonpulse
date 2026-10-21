@@ -105,9 +105,11 @@ describe("open-meteo adapter", () => {
 describe("adapter resilience", () => {
   const fallback = [{ year: 2023, source: "total", emissionsGg: 361110.6 }];
 
-  it("returns live data with a checksum on success", async () => {
+  it("labels fixture-backed rows as demo, not live", async () => {
+    // DEMO_MODE is unset in the test environment, which means demo mode is on.
+    // Reporting "live" here would mislabel seeded data.
     const result = await runAdapter(ghgAdapter, fallback);
-    expect(result.run.status).toBe("live");
+    expect(result.run.status).toBe("demo");
     expect(result.run.ok).toBe(true);
     expect(result.run.checksum).toHaveLength(16);
   });

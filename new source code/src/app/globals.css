@@ -3007,3 +3007,150 @@ input[type="range"] {
     margin-left: 0;
   }
 }
+
+/* ---------- township climate map ---------- */
+
+
+.scenario-label { padding: 8px 11px; border-radius: 8px; background: #f9e8d9; color: #855430; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
+.precinct-heading { margin-bottom: 24px; }
+.live-data-state { min-width: 178px; padding: 11px 14px; border: 1px solid #d9e3da; border-radius: 12px; background: rgba(255,255,255,.55); display: flex; align-items: center; gap: 10px; color: #5a6862; font-size: 10px; }
+.live-data-state i { width: 9px; height: 9px; border-radius: 50%; background: #eab308; box-shadow: 0 0 0 5px rgba(234,179,8,.12); animation: dataPulse 1.6s ease infinite; }
+.live-data-state b { display: block; color: var(--ink); font-size: 11px; }
+.live-data-state.live i { background: #22c55e; box-shadow: 0 0 0 5px rgba(34,197,94,.12); animation: none; }
+.live-data-state.fallback i { background: #f97316; box-shadow: 0 0 0 5px rgba(249,115,22,.12); animation: none; }
+.cohort-status { margin: -17px 0 20px; padding: 10px 13px; border: 1px solid #d6dfd9; border-radius: 13px; background: rgba(255,255,255,.66); display: flex; align-items: center; gap: 11px; }
+.cohort-status > span { flex: 0 0 auto; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.cohort-status p { margin: 0; color: #7d8d86; font-size: 12px; line-height: 1.45; }
+.cohort-status.opted-out > span { background: #edf0ec; color: #63736d; }
+.cohort-status.consented { border-color: #c8dfbd; background: #f2f8ec; }
+.cohort-status.consented > span { background: #dff3d2; color: var(--forest-700); }
+@keyframes dataPulse { 50% { opacity: .35; } }
+
+/* Critical Leaflet layout rules are kept locally so the map remains usable if the CDN stylesheet is delayed. */
+.leaflet-container { position: relative; overflow: hidden; outline-offset: 1px; }
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane > svg,.leaflet-pane > canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer { position: absolute; left: 0; top: 0; }
+.leaflet-pane { z-index: 400; }.leaflet-tile-pane { z-index: 200; }.leaflet-overlay-pane { z-index: 400; }.leaflet-shadow-pane { z-index: 500; }.leaflet-marker-pane { z-index: 600; }.leaflet-tooltip-pane { z-index: 650; }.leaflet-popup-pane { z-index: 700; }
+.leaflet-tile { visibility: hidden; user-select: none; }.leaflet-tile-loaded { visibility: inherit; }.leaflet-zoom-animated { transform-origin: 0 0; }
+.leaflet-control { position: relative; z-index: 800; pointer-events: auto; }.leaflet-top,.leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; }.leaflet-top { top: 0; }.leaflet-right { right: 0; }.leaflet-bottom { bottom: 0; }.leaflet-left { left: 0; }.leaflet-control { float: left; clear: both; }.leaflet-right .leaflet-control { float: right; }.leaflet-top .leaflet-control { margin-top: 10px; }.leaflet-bottom .leaflet-control { margin-bottom: 10px; }.leaflet-left .leaflet-control { margin-left: 10px; }.leaflet-right .leaflet-control { margin-right: 10px; }
+.leaflet-marker-icon,.leaflet-marker-shadow { display: block; }
+
+.climate-map-card { height: 620px; border-radius: 16px; background: #0d1412; color: #fff; position: relative; overflow: hidden; box-shadow: 0 24px 65px rgba(13,20,18,.22); }
+#climateMap { width: 100%; height: 100%; z-index: auto; background: #0d1412; }
+.climate-map-card::after { content:""; position: absolute; z-index: 300; inset: 0; pointer-events: none; background: linear-gradient(180deg,rgba(7,12,10,.8) 0,rgba(7,12,10,.05) 28%,rgba(7,12,10,0) 62%,rgba(7,12,10,.45) 100%); }
+.map-title-block { position: absolute; z-index: 900; top: 25px; left: 27px; max-width: 360px; pointer-events: none; }
+.map-kicker { color: #9fe4c0; font-size: 9px; font-weight: 800; letter-spacing: 1.15px; text-transform: uppercase; }
+.map-title-block h2 { margin: 5px 0 4px; font: 800 25px/1.15 "Manrope",sans-serif; letter-spacing: -.5px; }
+.map-title-block p { margin: 0; color: #a9b8b2; font-size: 10px; line-height: 1.45; }
+.map-layer-switcher { position: absolute; z-index: 900; top: 23px; right: 24px; padding: 4px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(13,20,18,.82); backdrop-filter: blur(14px); display: flex; gap: 3px; }
+.map-layer-switcher button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: #a9b8b2; cursor: pointer; font-size: 9px; font-weight: 800; transition: .2s; }
+.map-layer-switcher button:hover { color: #fff; }
+.map-layer-switcher button.active { background: var(--lime); color: #102f29; box-shadow: 0 4px 15px rgba(185,239,116,.18); }
+.map-display-controls { position: absolute; z-index: 900; top: 70px; right: 24px; display: flex; gap: 6px; }
+.map-display-controls button { min-height: 29px; padding: 0 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(13,20,18,.82); backdrop-filter: blur(12px); color: #c9d5d0; cursor: pointer; font: 800 8px "DM Sans",sans-serif; transition: .2s; }
+.map-display-controls button:hover { border-color: rgba(185,239,116,.45); color: #fff; }
+.map-display-controls button span { margin-right: 5px; color: var(--lime); }
+.map-display-controls button b { font: inherit; }
+.map-legend { position: absolute; z-index: 900; right: 24px; bottom: 23px; padding: 9px 11px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: rgba(13,20,18,.82); backdrop-filter: blur(12px); color: #b9c6c1; display: flex; gap: 13px; font-size: 8px; }
+.map-legend span { display: flex; align-items: center; gap: 5px; }
+.map-legend i { width: 7px; height: 7px; border-radius: 50%; }
+.legend-emerald { background:#22c55e; box-shadow:0 0 8px #22c55e; }.legend-amber { background:#eab308; box-shadow:0 0 8px #eab308; }.legend-orange { background:#f97316; box-shadow:0 0 8px #f97316; }
+.map-weather-chip { position: absolute; z-index: 900; left: 23px; bottom: 22px; padding: 10px 13px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(13,20,18,.82); backdrop-filter: blur(12px); display: flex; align-items: center; gap: 13px; }
+.weather-glyph { width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; background: rgba(234,179,8,.14); color: #facc15; font-size: 17px; }
+.map-weather-chip > div + div { padding-left: 13px; border-left: 1px solid rgba(255,255,255,.1); }
+.map-weather-chip small { display: block; color: #748981; font-size: 7px; text-transform: uppercase; letter-spacing: .45px; }
+.map-weather-chip strong { display: block; margin-top: 2px; color: #fff; font: 700 13px "Manrope",sans-serif; }
+.map-weather-chip em { display: block; margin-top: 2px; color: #8da29a; font-size: 7px; font-style: normal; white-space: nowrap; }
+.map-fallback { position: absolute; z-index: 700; inset: 50% auto auto 50%; transform: translate(-50%,-50%); padding: 15px 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: #111d19; text-align: center; }
+.map-fallback strong,.map-fallback span { display: block; }.map-fallback span { margin-top: 3px; color:#a9b8b2; font-size:9px; }
+.leaflet-control-zoom { margin-top: 180px !important; border: 0 !important; }
+.leaflet-control-zoom a { border: 1px solid rgba(255,255,255,.08) !important; background: rgba(13,20,18,.88) !important; color: #fff !important; }
+.leaflet-control-attribution { background: rgba(13,20,18,.7) !important; color: #b4c6bd !important; font-size: 8px !important; }
+.leaflet-control-attribution a { color: #d3e5db !important; text-decoration: underline !important; }
+.climate-map-card.light-map { background: #e7ecee; }
+.climate-map-card.light-map::after { background: linear-gradient(180deg,rgba(246,249,247,.78) 0,rgba(246,249,247,.1) 29%,rgba(246,249,247,0) 68%,rgba(13,20,18,.16) 100%); }
+.climate-map-card.light-map .map-title-block { padding: 12px 14px; border: 1px solid rgba(20,61,53,.1); border-radius: 12px; background: rgba(250,252,250,.88); box-shadow: 0 8px 26px rgba(20,61,53,.1); }
+.climate-map-card.light-map .map-title-block h2 { color: var(--forest-950); }
+.climate-map-card.light-map .map-title-block p { color: #63746d; }
+.climate-map-card.light-map .map-kicker { color: var(--forest-500); }
+.climate-div-icon { border: 0 !important; background: transparent !important; }
+.glow-marker { --glow:#eab308; --marker-x:0; --marker-y:0; width: 140px; height: 140px; position: relative; display: grid; place-items: center; transform:translate(var(--marker-x),var(--marker-y)); transition: transform .35s ease; }
+.glow-marker:hover { transform:translate(var(--marker-x),var(--marker-y)) scale(1.06); }
+.glow-marker.marker-elmina-east { --marker-x:54px; --marker-y:28px; }
+.glow-marker.marker-elmina-business { --marker-x:-38px; --marker-y:-54px; }
+.glow-marker.tone-emerald { --glow:#22c55e; }.glow-marker.tone-amber { --glow:#eab308; }.glow-marker.tone-orange { --glow:#f97316; }
+.marker-halo { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb,var(--glow) 78%,transparent) 0%,color-mix(in srgb,var(--glow) 42%,transparent) 34%,transparent 70%); filter: blur(18px); opacity: .85; pointer-events: none; transition: background .45s,opacity .45s; animation: markerBreath 4s ease-in-out infinite; }
+@keyframes markerBreath { 50% { opacity: .58; transform: scale(.92); } }
+.marker-core { position: relative; z-index: 2; min-width: 74px; padding: 7px 10px 6px; border: 1px solid color-mix(in srgb,var(--glow) 62%,#fff 10%); border-radius: 999px; background: rgba(8,16,13,.9); color: #fff; text-align: center; box-shadow: 0 8px 26px rgba(0,0,0,.3),0 0 18px color-mix(in srgb,var(--glow) 28%,transparent); }
+.marker-core strong { display: block; font: 800 12px/1 "Manrope",sans-serif; white-space: nowrap; }
+.marker-core small { display: block; margin-top: 3px; color: color-mix(in srgb,var(--glow) 75%,#fff 25%); font-size: 6px; font-weight: 800; letter-spacing: .45px; text-transform: uppercase; }
+.marker-name { position: absolute; z-index: 2; top: 94px; left: 50%; transform: translateX(-50%); width: max-content; max-width: 140px; color: #d8e4df; text-align: center; font-size: 8px; font-weight: 700; text-shadow: 0 1px 4px #000; }
+.leaflet-popup-content-wrapper,.leaflet-popup-tip { background:#14211d; color:#dfe9e5; }
+.leaflet-popup-content-wrapper { border:1px solid rgba(255,255,255,.08); border-radius:12px; }
+.leaflet-popup-content { margin:12px 14px; font-size:10px; line-height:1.45; }
+.leaflet-popup-content strong { color:#fff; }.leaflet-popup-content small { color:#8ca098; }
+
+.climate-metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 16px; }
+.climate-metric-grid article { padding: 20px 22px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); box-shadow: var(--shadow); }
+.climate-metric-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; }
+.climate-metric-head em { padding: 4px 7px; border-radius: 20px; background: #e8f2e2; color: #3f6a2b; font-style: normal; font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.climate-metric-grid article > strong { display: flex; align-items: baseline; gap: 7px; margin-top: 12px; color: var(--forest-800); }
+.climate-metric-grid article > strong b { font: 800 29px/1 "Manrope",sans-serif; }
+.climate-metric-grid article > strong small { color: #5a6862; font-size: 10px; }
+.climate-metric-grid article > p { margin: 10px 0 0; color: #5a6862; font-size: 8px; }
+.climate-metric-grid article > p span { color: var(--forest-700); font-weight: 800; }
+
+.climate-simulator { margin-top: 18px; padding: clamp(25px,3.2vw,42px); border: 1px solid rgba(29,51,47,.08); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+.simulator-intro { max-width: 760px; }
+.simulator-intro h2 { margin: 6px 0 8px; font: 800 clamp(25px,3vw,38px)/1.18 "Manrope",sans-serif; letter-spacing: -1px; }
+.simulator-intro p { margin: 0; color: var(--muted); font-size: 11px; }
+.timeline-panel { margin-top: 27px; padding: 26px; border-radius: 16px; background: #eef3e8; display: grid; grid-template-columns: 1.25fr .55fr; gap: 20px 28px; position: relative; overflow: hidden; }
+.timeline-panel::after { content:""; position:absolute; width:240px; height:240px; right:-90px; top:-120px; border-radius:50%; background:rgba(185,239,116,.19); }
+.timeline-copy,.timeline-reading,.timeline-control,.timeline-assets,.timeline-caution { position:relative; z-index:1; }
+.timeline-year { display: flex; align-items: center; gap: 9px; }
+.timeline-year span { color: var(--forest-800); font: 800 28px/1 "Manrope",sans-serif; }
+.timeline-year em { padding: 5px 8px; border-radius: 20px; background: var(--forest-800); color: var(--lime); font-style: normal; font-size: 7px; font-weight: 800; text-transform: uppercase; }
+.timeline-copy h3 { margin: 10px 0 5px; font: 800 18px "Manrope",sans-serif; }
+.timeline-copy p { margin: 0; color: #667870; font-size: 9px; line-height: 1.55; }
+.timeline-reading { padding-left: 22px; border-left: 1px solid #cfdbd0; }
+.timeline-reading small { display:block; color:#72837b; font-size:8px; }
+.timeline-reading strong { display:block; margin:8px 0 4px; color:var(--forest-800); font:700 13px "Manrope",sans-serif; }.timeline-reading strong b{font-size:32px;}
+.timeline-reading span { color:#799087; font-size:8px; }
+.timeline-control { grid-column:1/-1; }
+.timeline-control input[type="range"] { width:100%; margin:10px 0 9px; accent-color:var(--forest-700); }
+.timeline-stops { display:grid; grid-template-columns:repeat(4,1fr); }
+.timeline-stops button { padding:0; border:0; background:none; color:#8a9892; cursor:pointer; text-align:left; font:700 10px "Manrope",sans-serif; }
+.timeline-stops button:last-child { text-align:right; }.timeline-stops button:nth-child(2),.timeline-stops button:nth-child(3){text-align:center;}
+.timeline-stops button small { display:block; margin-top:2px; font:400 7px "DM Sans"; }
+.timeline-stops button.active { color:var(--forest-700); }
+.timeline-assets { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.timeline-assets div { min-height:70px; padding:12px; border:1px solid #d5dfd4; border-radius:10px; background:rgba(255,255,255,.52); }
+.timeline-assets strong { display:block; color:var(--forest-700); font:800 16px "Manrope",sans-serif; }.timeline-assets span{display:block;margin-top:3px;color:#75847e;font-size:7px;line-height:1.4;}
+.timeline-caution { grid-column:1/-1; margin:0; color:#8b9893; font-size:7px; }
+
+.whatif-grid { display:grid; grid-template-columns:.85fr 1.15fr; margin-top:15px; border-radius:16px; overflow:hidden; }
+.whatif-controls { padding:30px; background:var(--forest-800); color:#fff; }
+.whatif-controls h3 { margin:7px 0 25px; font:800 23px/1.25 "Manrope",sans-serif; }
+.whatif-controls label { margin-top:20px; display:flex; justify-content:space-between; color:#c1d3cc; font-size:10px; font-weight:600; }
+.whatif-controls output { color:var(--lime); font:800 16px "Manrope",sans-serif; }
+.whatif-controls input[type="range"] { width:100%; margin:13px 0 4px; accent-color:var(--lime); }
+.range-labels { display:flex; justify-content:space-between; color:#b8cec4; font-size:7px; }
+.whatif-controls > p { margin:24px 0 0; padding-top:15px; border-top:1px solid rgba(255,255,255,.1); color:#c2d6cc; font-size:8px; line-height:1.5; }
+.whatif-result { padding:32px; background:#f0f3e9; }
+.whatif-primary { display:flex; align-items:flex-end; gap:12px; margin:22px 0 14px; }
+.whatif-primary strong { color:var(--forest-800); font:800 clamp(48px,5vw,68px)/.9 "Manrope",sans-serif; letter-spacing:-3px; }
+.whatif-primary span { color:var(--forest-500); font-size:11px; font-weight:800; line-height:1.2; }
+.whatif-equation { display:flex; flex-wrap:wrap; gap:6px; width:fit-content; padding:7px 10px; border-radius:8px; background:#dfe8db; color:#41534b; font-size:8px; }
+.whatif-equation b { color:var(--forest-700); }
+.whatif-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:27px; }
+.whatif-stats div { padding:13px; border:1px solid #d4ded2; border-radius:10px; background:rgba(255,255,255,.48); }
+.whatif-stats span { display:block; color:#5a6862; font-size:7px; }.whatif-stats strong{display:block;margin-top:5px;color:var(--forest-700);font:800 13px "Manrope",sans-serif;}
+.corridor-progress { margin-top:23px; }
+.corridor-progress > div { display:flex; justify-content:space-between; color:#4a5a53; font-size:8px; }
+.corridor-progress > div b { color:var(--forest-700); }
+.corridor-progress > i { display:block; height:6px; margin-top:8px; border-radius:8px; background:#d6ded3; overflow:hidden; }
+.corridor-progress > i span { display:block; width:100%; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--forest-500),var(--lime-deep)); transition:width .4s; }
+.corridor-progress small { display:block; margin-top:7px; color:#5a6862; font-size:7px; line-height:1.4; }
+.climate-source-note { margin-top:15px; padding:14px 17px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.42); display:flex; gap:15px; }
+.climate-source-note span { flex:0 0 auto; color:var(--forest-700); font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.7px; }
+.climate-source-note p { margin:0; color:#6d7c77; font-size:8px; line-height:1.5; }
+.climate-source-note a { color: var(--forest-600); font-weight: 700; text-underline-offset: 2px; }
