@@ -10,6 +10,22 @@ import {
   WORLD_BANK_RESPONSE,
   OPEN_METEO_ARCHIVE,
 } from "./fixtures";
+import {
+  fetchElectricityLive,
+  fetchGhgLive,
+  fetchOpenMeteoLive,
+  fetchWorldBankLive,
+} from "./live";
+
+/**
+ * Demo mode returns fixtures without touching the network. With it off, the
+ * adapters fetch the real source; if that fails or fails validation, the
+ * caller falls back to the recorded fixture and the badge reads Cached.
+ */
+function demoMode(): boolean {
+  return process.env.DEMO_MODE !== "false";
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* data.gov.my                                                                */
@@ -29,7 +45,8 @@ export interface GhgRow {
 export const ghgAdapter: SourceAdapter<readonly Record<string, unknown>[], readonly GhgRow[]> = {
   id: "S4",
   async fetch() {
-    return GHG_EMISSIONS_ROWS as unknown as readonly Record<string, unknown>[];
+    if (demoMode()) return GHG_EMISSIONS_ROWS as unknown as readonly Record<string, unknown>[];
+    return fetchGhgLive();
   },
   normalize(raw) {
     return raw
@@ -65,13 +82,16 @@ export const electricityAdapter: SourceAdapter<
 > = {
   id: "S2",
   async fetch() {
-    return ELECTRICITY_CONSUMPTION_ROWS as unknown as readonly Record<string, unknown>[];
+    if (demoMode()) return ELECTRICITY_CONSUMPTION_ROWS as unknown as readonly Record<string, unknown>[];
+    return fetchElectricityLive();
   },
   normalize(raw) {
     return raw.map((row) => ({
       period: String(row.date ?? "").slice(0, 7),
-      sector: String(row.sector ?? ""),
-      gwh: Number(row.value),
+      // The live CSV reports `local_domestic`; the fixture uses `domestic`.
+      // Normalizing both here keeps the comparison meaningful.
+      sector: String(row.sector ?? "").replace(/^local_/, ""),
+      gwh: Number(row.consumption ?? row.value),
     }));
   },
   validate(rows) {
@@ -108,7 +128,8 @@ type WorldBankPayload = readonly [unknown, readonly Record<string, unknown>[]];
 export const worldBankAdapter: SourceAdapter<WorldBankPayload, readonly PerCapitaRow[]> = {
   id: "S12",
   async fetch() {
-    return WORLD_BANK_RESPONSE as unknown as WorldBankPayload;
+    if (demoMode()) return WORLD_BANK_RESPONSE as unknown as WorldBankPayload;
+    return fetchWorldBankLive();
   },
   normalize(raw) {
     const [, rows] = raw;
@@ -149,24 +170,25 @@ export interface WeatherHour {
 }
 
 interface ArchivePayload {
-  readonly hourly: {
-    readonly time: readonly string[];
-    readonly shortwave_radiation: readonly number[];
-    readonly temperature_2m: readonly number[];
+  readonly hourly?: {
+    readonly time?: readonly string[];
+    readonly shortwave_radiation?: readonly (number | null)[];
+    readonly temperature_2m?: readonly (number | null)[];
   };
 }
 
 export const openMeteoAdapter: SourceAdapter<ArchivePayload, readonly WeatherHour[]> = {
   id: "S10",
   async fetch() {
-    return OPEN_METEO_ARCHIVE as unknown as ArchivePayload;
+    if (demoMode()) return OPEN_METEO_ARCHIVE as unknown as ArchivePayload;
+    return fetchOpenMeteoLive();
   },
   normalize(raw) {
     const times = raw.hourly?.time ?? [];
     return times.map((time, index) => ({
       time,
-      radiationWm2: raw.hourly.shortwave_radiation[index] ?? 0,
-      temperatureC: raw.hourly.temperature_2m[index] ?? 0,
+      radiationWm2: raw.hourly?.shortwave_radiation?.[index] ?? 0,
+      temperatureC: raw.hourly?.temperature_2m?.[index] ?? 0,
     }));
   },
   validate(rows) {
@@ -226,7 +248,9 @@ export async function runAdapter<Raw, T>(
         rows,
         run: {
           sourceId: adapter.id,
-          status: "live",
+          // In demo mode the rows came from the recorded fixture, so reporting
+          // "live" would mislabel seeded data as a live read.
+          status: demoMode() ? "demo" : "live",
           checksum: checksum(rows),
           fetchedAt,
           rowCount: Array.isArray(rows) ? rows.length : 0,

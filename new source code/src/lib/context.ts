@@ -40,7 +40,7 @@ export interface ContextBlock {
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const globalForContext = globalThis as unknown as {
-  __carbonpulseContext?: { at: number; block: ContextBlock };
+  __carbonpulseContext?: { at: number; demo: boolean; block: ContextBlock };
 };
 
 /**
@@ -49,10 +49,14 @@ const globalForContext = globalThis as unknown as {
  * failed source falls back to the recorded fixture and is labelled Cached.
  */
 export async function loadContext(): Promise<ContextBlock> {
-  const cached = globalForContext.__carbonpulseContext;
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.block;
-
   const demo = process.env.DEMO_MODE !== "false";
+
+  const cached = globalForContext.__carbonpulseContext;
+  // The cache key includes demo mode: flipping the flag must not serve a block
+  // built under the other mode, which would mislabel freshness.
+  if (cached && cached.demo === demo && Date.now() - cached.at < CACHE_TTL_MS) {
+    return cached.block;
+  }
 
   const ghgFallback: readonly GhgRow[] = [
     { year: 2023, source: "total", emissionsGg: 361110.6 },
@@ -142,7 +146,7 @@ export async function loadContext(): Promise<ContextBlock> {
     })),
   };
 
-  globalForContext.__carbonpulseContext = { at: Date.now(), block };
+  globalForContext.__carbonpulseContext = { at: Date.now(), demo, block };
   return block;
 }
 

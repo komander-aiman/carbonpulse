@@ -2,6 +2,7 @@ import "server-only";
 
 import { DEMO_COMPLETED_ACTIONS, DEMO_HOUSEHOLD, DEMO_PERIODS } from "@/db/demo";
 import type { HouseholdActionState } from "@/domain/actions";
+import { DEMO_MODE } from "@/lib/config";
 
 export interface UsageRecord {
   readonly id: string;
@@ -166,8 +167,13 @@ export function getHousehold(householdId: string): HouseholdData | null {
   };
 }
 
-/** First visit for a session: seed the demo household so every route renders. */
-export function ensureHousehold(householdId: string, demo = true): HouseholdData {
+/**
+ * First visit for a session. Demo data is seeded only when demo mode is on;
+ * with `DEMO_MODE=false` a new household starts empty so the app shows its
+ * real first-run state. Callers that genuinely need a seeded household (the
+ * seed script) can pass `demo` explicitly.
+ */
+export function ensureHousehold(householdId: string, demo: boolean = DEMO_MODE): HouseholdData {
   return getHousehold(householdId) ?? createHousehold(householdId, demo);
 }
 

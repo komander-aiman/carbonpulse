@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  ensureHousehold(session.householdId, true);
+  ensureHousehold(session.householdId);
   const result = saveUsage(session.householdId, { ...parsed.data, source: "manual" });
   if (!result.ok) {
     return NextResponse.json(

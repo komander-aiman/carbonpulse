@@ -129,24 +129,41 @@ export default async function CommunityPage() {
           <section className="panel">
             <div className="panel-heading">
               <div>
-                <span className="eyebrow">Demo snapshot</span>
-                <h2>Participation</h2>
+                <span className="eyebrow">{community.isDemoData ? "Demo snapshot" : "Participation"}</span>
+                <h2>{community.isDemoData ? "Participation" : "Cohort activity"}</h2>
               </div>
-              <EvidenceTag label="Demo" />
+              <EvidenceTag label={community.isDemoData ? "Demo" : "Recorded"} />
             </div>
             <ul className="result-list">
-              <li>
-                <span>Opted-in households</span>
-                <strong>{PRECINCT_METRICS.optedIn}</strong>
-              </li>
-              <li>
-                <span>Monthly submissions</span>
-                <strong>{PRECINCT_METRICS.monthlySubmissions}</strong>
-              </li>
-              <li>
-                <span>Actions completed</span>
-                <strong>{PRECINCT_METRICS.actionsCompleted}</strong>
-              </li>
+              {community.isDemoData ? (
+                <>
+                  <li>
+                    <span>Opted-in households</span>
+                    <strong>{PRECINCT_METRICS.optedIn}</strong>
+                  </li>
+                  <li>
+                    <span>Monthly submissions</span>
+                    <strong>{PRECINCT_METRICS.monthlySubmissions}</strong>
+                  </li>
+                  <li>
+                    <span>Actions completed</span>
+                    <strong>{PRECINCT_METRICS.actionsCompleted}</strong>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <span>Consenting households</span>
+                    <strong>
+                      {community.overall.suppressed ? "Suppressed" : community.overall.householdCount}
+                    </strong>
+                  </li>
+                  <li>
+                    <span>Your consent</span>
+                    <strong>{consentGranted ? "Granted" : "Not granted"}</strong>
+                  </li>
+                </>
+              )}
               <li>
                 <span>Active factor</span>
                 <strong>
@@ -154,6 +171,12 @@ export default async function CommunityPage() {
                 </strong>
               </li>
             </ul>
+            {community.isDemoData ? null : (
+              <p className="source-note">
+                Seeded demonstration figures are not shown while demo mode is off. Counts come only from consenting
+                households in this cohort.
+              </p>
+            )}
             <p className="source-note">{factor.basis}. {factor.status} · {factor.year}.</p>
           </section>
         </aside>

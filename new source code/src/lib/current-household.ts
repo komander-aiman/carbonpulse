@@ -3,19 +3,19 @@ import "server-only";
 import { readSession } from "@/lib/session";
 import { ensureHousehold, getHousehold, type HouseholdData } from "@/lib/household-store";
 import { DEMO_HOUSEHOLD } from "@/db/demo";
+import { DEMO_MODE } from "@/lib/config";
 
 export const DEMO_SESSION_ID = DEMO_HOUSEHOLD.id;
 
 /**
- * Resolves the household for a read. With no signed session yet the demo
- * household is shown, so every route renders before the visitor interacts.
- * Cookies cannot be set during a render, so the real session starts on the
- * first mutation (see /api/households and the usage routes).
+ * Resolves the household for a read. With no signed session the demo household
+ * is shown only while demo mode is on; otherwise the caller gets an empty real
+ * household so the app renders a genuine first-run state.
  */
 export async function currentHousehold(): Promise<HouseholdData> {
   const session = await readSession();
   const householdId = session?.householdId ?? DEMO_SESSION_ID;
-  return getHousehold(householdId) ?? ensureHousehold(householdId, true);
+  return getHousehold(householdId) ?? ensureHousehold(householdId, DEMO_MODE);
 }
 
 /** Id of the household data currently displayed, for form submissions. */

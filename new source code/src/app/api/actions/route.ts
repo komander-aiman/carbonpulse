@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function GET() {
   const session = await ensureSession();
-  const data = ensureHousehold(session.householdId, true);
+  const data = ensureHousehold(session.householdId);
   return NextResponse.json({ ok: true, data: buildActionsViewModel(data) });
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
   const session = await ensureSession();
-  ensureHousehold(session.householdId, true);
+  ensureHousehold(session.householdId);
   setActionState(session.householdId, parsed.data.actionId, parsed.data.state);
   const data = getHousehold(session.householdId);
   return NextResponse.json({ ok: true, data: data ? buildActionsViewModel(data) : null });

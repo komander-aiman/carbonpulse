@@ -30,7 +30,7 @@ const manualSchema = z.object({
 
 async function bindSession(): Promise<string> {
   const session = await ensureSession();
-  ensureHousehold(session.householdId, true);
+  ensureHousehold(session.householdId);
   const store = await cookies();
   const cookie = sessionCookie(session.householdId);
   store.set(cookie.name, cookie.value, cookie.options);
