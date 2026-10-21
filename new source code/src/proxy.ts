@@ -56,8 +56,8 @@ function contentSecurityPolicy(nonce: string): string {
     // style attributes for computed widths, so styles cannot be nonced.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https://tiles.openfreemap.org",
-    "connect-src 'self' https://tiles.openfreemap.org https://api.open-meteo.com https://archive-api.open-meteo.com",
+    "img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com",
+    "connect-src 'self' https://tiles.openfreemap.org https://server.arcgisonline.com https://api.open-meteo.com https://archive-api.open-meteo.com https://air-quality-api.open-meteo.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
