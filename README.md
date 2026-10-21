@@ -3,7 +3,7 @@
 A Next.js + Supabase pilot that turns a household electricity bill into an explainable
 CO2e estimate, a personal dashboard with a similar-home comparison, a questionnaire-driven
 action plan with a provisional-or-confirmed goal, and — if the resident chooses — a
-privacy-safe zone aggregate on one MapLibre map.
+privacy-safe zone aggregate on a community map.
 
 The specification lives in `src/.md/` (index, six PRDs, and PRD 07 for the household
 profile). `src/` is the application. `dist/` is the original buildless prototype, kept as
@@ -50,7 +50,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 | `/energy/upload` | Bill photo as a local reference, manual kWh entry, validation |
 | `/questionnaire` | Eight-question household profile, skippable and editable |
 | `/actions` | Ranked actions filtered by profile, plan selection, potential with overlap discount and cap, goal |
-| `/community` | Zone statistics, shared-goal progress, suppression states, one map, demo toggle, consent |
+| `/community` | Zone statistics, shared-goal progress, suppression states, township climate map, zone map, demo toggle, consent |
 | `/learn` | Method, evidence definitions, version registry, limitations, k = 5 rationale |
 | `/township` | Published Elmina articles |
 | `/township/[slug]` | One article with cited sources and related actions |
@@ -82,7 +82,7 @@ API: `/api/usage`, `/api/estimate`, `/api/questionnaire`, `/api/actions`, `/api/
 src/
   app/            App Router pages, API handlers, global styles
   adapters/       Source adapters + recorded fixtures + fallback contract
-  components/     UI: sidebar, one MapLibre map, charts, evidence labels, privacy modal
+  components/     UI: sidebar, township climate map, zone map, charts, evidence labels, privacy modal
   domain/         Framework-free logic — no React, no I/O, no server-only
     carbon/       Factor registry, intensity model, load shapes, estimates, CSV
     profile/      Questionnaire -> archetype, profile band, action applicability
@@ -174,15 +174,24 @@ published only when the zone itself publishes.
 The residual inference risk at k = 5 is documented in PRD 04 §9, along with the required
 privacy sign-off before a real cohort is enabled.
 
-## Map
+## Maps
 
-`/community` has one map: MapLibre GL JS with OpenFreeMap tiles. It renders the indicative
-OSM boundary, six zone polygons shaded against the viewer's zone median, public POIs, and
-the shared-goal summary. Suppressed zones are neutral grey. The map always has a table
-equivalent and a labelled fallback panel if tiles fail.
+`/community` has two maps doing two different jobs:
 
-Basemap attribution is rendered by MapLibre and includes "© OpenStreetMap contributors"
-and "OpenFreeMap © OpenMapTiles".
+1. **Township climate pulse** (Leaflet + Esri basemap). Three switchable layers: the
+   household footprint estimate, regional atmospheric CO2, and regional air quality.
+   Includes the 1850–2030 timeline and a scenario slider that moves the household layer
+   only. Every value is a regional model estimate or a labelled fallback. It is not a
+   Scope 3 inventory and it draws no household location.
+2. **Zone shading** (MapLibre + OpenFreeMap). The indicative OSM boundary, six zone
+   polygons shaded against the viewer's zone median, public POIs, and the shared-goal
+   summary. Suppressed zones are neutral grey.
+
+Both maps carry a table equivalent and a labelled fallback panel if tiles fail.
+
+Basemap attribution: "© Esri, HERE, Garmin, OSM contributors" on the climate map;
+MapLibre renders "© OpenStreetMap contributors" and "OpenFreeMap © OpenMapTiles" on the zone
+map.
 
 ## Security posture
 

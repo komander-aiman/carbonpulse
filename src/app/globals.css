@@ -3171,3 +3171,5 @@ fieldset.field legend { padding:0; margin-bottom:6px; }
 .demo-toggle-row .consent-row > span { flex:1 1 auto; }
 .map-shell.demo-boundary .map-canvas { outline:3px dashed #b45f06; outline-offset:-3px; }
 @media (max-width:720px) { .demo-toggle-row .consent-row { flex-direction:column; align-items:flex-start; } }
+
+.climate-range-labels { color:#63746d; font-size:9px; }
