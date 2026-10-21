@@ -8,7 +8,9 @@
   <meta name="description"
     content="CarbonPulse turns monthly electricity use into clear, practical household actions and privacy-safe township insights.">
   <title>CarbonPulse · My Energy</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQ3ynJb+MZqjMZrF2dN/LhPVRA4hLw=" crossorigin="">
+  <link rel="stylesheet" href="styles.css?v=20261020-4">
 </head>
 
 <body>
@@ -107,8 +109,8 @@
               <div class="status-line"><span></span> September usage analysed</div>
               <p class="metric-label">Recorded electricity use</p>
               <div class="hero-value"><strong data-kwh>300</strong><span>kWh</span></div>
-              <div class="trend good"><span>↓ 8%</span> compared with August</div>
-              <p class="hero-note">That is 26 kWh less than your previous billing period.</p>
+              <div class="trend good" id="usageTrend"><span id="usageTrendPercent">↓ 8.0%</span><b id="usageTrendComparison">26 kWh less than August</b></div>
+              <p class="hero-note" id="usageTrendNote">That is 26 kWh less than your previous billing period.</p>
               <button class="light-button" data-nav-to="energy">See energy details <span>→</span></button>
             </div>
             <div class="hero-visual" aria-label="Monthly energy pulse visualization">
@@ -121,7 +123,7 @@
                   <path d="M17 53c5.2-14.2 13.9-24.8 27.5-32.2" />
                 </svg>
               </div>
-              <div class="pulse-chip chip-one"><i></i><span><b>26 kWh</b> less</span></div>
+              <div class="pulse-chip chip-one"><i></i><span><b id="heroDifference">26 kWh</b><span id="heroDifferenceDirection">less</span></span></div>
               <div class="pulse-chip chip-two"><i></i><span><b>0.740</b> factor</span></div>
             </div>
           </section>
@@ -150,9 +152,9 @@
                 <span class="evidence-tag recorded">Your goal</span>
               </div>
               <p>Monthly target</p>
-              <div class="metric-number"><strong>270</strong><span>kWh</span></div>
+              <div class="metric-number"><strong id="goalTarget">270</strong><span>kWh</span></div>
               <div class="goal-progress"><span id="goalBar"></span></div>
-              <small><b id="goalGap">30 kWh</b> to go · target is 10% lower</small>
+              <small><b id="goalGap">30 kWh</b><span id="goalGapSuffix"> to go · target is 10% lower</span></small>
             </article>
 
             <article class="metric-card action-card-summary">
@@ -177,7 +179,7 @@
                 </div>
                 <div class="legend"><span class="legend-dot"></span>Recorded kWh</div>
               </div>
-              <div class="chart-summary"><strong>−12.5%</strong><span>since April</span></div>
+              <div class="chart-summary"><strong id="overviewTrendPercent">−12.5%</strong><span>since April</span></div>
               <div class="bar-chart" id="barChart" aria-label="Monthly electricity usage bar chart"></div>
             </article>
 
@@ -196,7 +198,7 @@
                 <span class="plant">⌁</span>
               </div>
               <p>Set your air conditioner to 24–26°C and use the timer at night.</p>
-              <div class="potential"><span>Potential</span><strong>12–18 kWh / month</strong></div>
+              <div class="potential"><span>Illustrative potential</span><strong id="overviewActionPotential">12–18 kWh / month</strong></div>
               <button class="secondary-button" data-nav-to="actions">View action plan</button>
             </article>
           </div>
@@ -273,11 +275,11 @@
               <div class="history-table">
                 <div class="history-head"><span>Period</span><span>Status</span><span>Usage</span><span>Est.
                     footprint</span></div>
-                <div><span>September 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong
+                <div><span>September 2026</span><span><i class="check-dot">✓</i> User confirmed</span><strong
                     data-kwh-unit>300 kWh</strong><span data-emissions-unit>222.0 kg CO₂e</span></div>
-                <div><span>August 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong>326
+                <div><span>August 2026</span><span>Demo baseline</span><strong>326
                     kWh</strong><span>241.2 kg CO₂e</span></div>
-                <div><span>July 2026</span><span><i class="check-dot">✓</i> Confirmed</span><strong>318
+                <div><span>July 2026</span><span>Demo baseline</span><strong>318
                     kWh</strong><span>235.3 kg CO₂e</span></div>
               </div>
             </article>
@@ -302,8 +304,8 @@
         <section class="view" id="view-actions" data-view-panel="actions">
           <div class="page-heading compact-heading">
             <div><span class="eyebrow">Action plan</span>
-              <h1>Your simplest route to 270 kWh.</h1>
-              <p>Three practical actions, chosen for your household profile.</p>
+              <h1 id="actionPlanHeading">Your simplest route to 270 kWh.</h1>
+              <p id="actionPlanSubtitle">Three practical actions, chosen for your household profile.</p>
             </div>
             <div class="plan-score"><strong id="planPercent">33%</strong><span>plan complete</span></div>
           </div>
@@ -321,7 +323,7 @@
                 <div class="tip-detail">Cooling is your largest self-reported appliance category. A small thermostat
                   adjustment is an easy, repeatable habit.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>12–18</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="temperatureSaving">12–18</strong><small>kWh / month</small></div>
             </article>
             <article class="plan-card" data-action-id="timer">
               <button class="action-check" aria-label="Mark timer action complete"></button>
@@ -338,7 +340,7 @@
                 <div class="tip-detail">Set one reusable timer on the remote tonight. Keep a fan on low after the air
                   conditioner stops.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>8–12</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="timerSaving">8–12</strong><small>kWh / month</small></div>
             </article>
             <article class="plan-card" data-action-id="standby">
               <button class="action-check" aria-label="Mark standby action complete"></button>
@@ -353,67 +355,146 @@
                 <div class="tip-detail">Place the power strip where the switch is visible. Add it to your leaving-home
                   routine.</div>
               </div>
-              <div class="plan-saving"><span>Potential</span><strong>3–5</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="standbySaving">3–5</strong><small>kWh / month</small></div>
             </article>
           </div>
           <div class="plan-footer">
-            <div><span class="eyebrow light">Your target</span><strong>Up to 35 kWh</strong>
-              <p>potential monthly reduction from this plan</p>
+            <div><span class="eyebrow light">Your target</span><strong id="combinedPotential">Up to 29 kWh</strong>
+              <p>combined illustrative potential · adjusted for overlapping cooling actions</p>
+              <small class="overlap-note">Temperature and timer savings are not fully additive; their combined estimate includes a 20% overlap discount.</small>
             </div>
             <div class="target-ring"><svg viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="39" />
                 <circle class="ring-progress" cx="50" cy="50" r="39" />
-              </svg><span><b>30</b> kWh<br>goal</span></div>
+              </svg><span id="targetRingLabel"><b>30</b> kWh<br>goal</span></div>
           </div>
         </section>
 
         <section class="view" id="view-precinct" data-view-panel="precinct">
-          <div class="page-heading compact-heading">
-            <div><span class="eyebrow">Precinct pulse</span>
-              <h1>See how shared goals add up.</h1>
-              <p>This is a scenario—not a prediction or measured township outcome.</p>
-            </div><span class="scenario-label">What-if model</span>
+          <div class="page-heading compact-heading precinct-heading">
+            <div><span class="eyebrow">Precinct pulse · City of Elmina</span>
+              <h1>From global climate to local action.</h1>
+              <p>Explore live atmospheric context alongside transparent household energy scenarios.</p>
+            </div>
+            <div class="live-data-state" id="liveDataState"><i></i><span><b>Connecting</b> to climate feeds</span></div>
           </div>
-          <div class="scenario-layout">
-            <article class="scenario-control">
-              <span class="eyebrow light">Try a scenario</span>
-              <h2>If participating households used less electricity each month…</h2>
-              <label for="householdSlider"><span>Participating households</span><output
-                  id="householdOutput">200</output></label>
-              <input type="range" id="householdSlider" min="20" max="500" value="200" step="10">
-              <div class="range-labels"><span>20</span><span>500</span></div>
-              <label for="savingSlider"><span>Average reduction</span><output id="savingOutput">10%</output></label>
-              <input type="range" id="savingSlider" min="1" max="25" value="10" step="1">
-              <div class="range-labels"><span>1%</span><span>25%</span></div>
-              <div class="scenario-assumption">Assumes a 300 kWh monthly baseline per household and the same disclosed
-                grid factor.</div>
+
+          <div class="cohort-status opted-out" id="cohortStatus" role="status" aria-live="polite">
+            <span id="cohortStatusPill">Not opted in</span>
+            <p id="cohortStatusText">Showing illustrative 5-precinct baseline.</p>
+          </div>
+
+          <article class="climate-map-card">
+            <div class="map-title-block">
+              <span class="map-kicker">Sime Darby Property townships</span>
+              <h2>Township climate pulse</h2>
+              <p id="mapLayerDescription">Illustrative monthly electricity-use scenario informed by GHG Protocol Scope 3 Category 11 (Use of Sold Products) using the 2024 provisional Peninsular Malaysia grid factor (0.740 kg CO₂e/kWh). Not an SDP corporate emissions inventory.</p>
+            </div>
+            <div class="map-layer-switcher" role="group" aria-label="Map data layer">
+              <button class="active" data-map-layer="scope">Household Scope 3 scenario</button>
+              <button data-map-layer="co2">Atmospheric CO₂</button>
+              <button data-map-layer="air">Air quality & CO</button>
+            </div>
+            <div class="map-display-controls" role="group" aria-label="Map appearance and extent">
+              <button id="mapExtentToggle" type="button" aria-pressed="false">Malaysia view</button>
+              <button id="mapThemeToggle" type="button" aria-pressed="false">
+                <span aria-hidden="true">◐</span><b id="mapThemeLabel">Light map</b>
+              </button>
+            </div>
+            <div id="climateMap" aria-label="Interactive map of five Sime Darby Property townships"></div>
+            <div class="map-legend" id="mapLegend">
+              <span><i class="legend-emerald"></i>Low / target</span>
+              <span><i class="legend-amber"></i>Moderate</span>
+              <span><i class="legend-orange"></i>High</span>
+            </div>
+            <div class="map-weather-chip">
+              <span class="weather-glyph" aria-hidden="true">☼</span>
+              <div><small>Elmina West microclimate</small><strong><b id="liveTemperature">31.2</b>°C</strong><em id="weatherDataTag">Fallback demonstration data</em></div>
+              <div><small>Humidity</small><strong><b id="liveHumidity">72</b>%</strong></div>
+            </div>
+            <div class="map-fallback" id="mapFallback" hidden>
+              <strong>Basemap unavailable</strong><span>Live cards and simulations are still working.</span>
+            </div>
+          </article>
+
+          <div class="climate-metric-grid">
+            <article>
+              <div class="climate-metric-head"><span>Global atmosphere</span><em id="globalDataTag">Fallback</em></div>
+              <strong><b id="globalCo2Value">427.4</b><small>ppm CO₂</small></strong>
+              <p><span id="globalCo2Delta">+53.7%</span> from the 278 ppm pre-industrial reference</p>
             </article>
-            <article class="scenario-result">
-              <div class="scenario-visual" id="householdDots" aria-hidden="true"></div>
-              <div class="scenario-kicker">Combined monthly scenario</div>
-              <div class="scenario-big"><strong id="savedKwh">6,000</strong><span>kWh less</span></div>
-              <div class="scenario-equation"><span id="scenarioHouseholds">200 households</span><b>×</b><span
-                  id="scenarioPerHome">30 kWh each</span></div>
-              <div class="result-grid">
-                <div><span>Estimated emissions difference</span><strong id="savedCarbon">4.44 t CO₂e</strong></div>
-                <div><span>Annualised scenario</span><strong id="annualCarbon">53.28 t CO₂e</strong></div>
+            <article>
+              <div class="climate-metric-head"><span>Elmina West air quality</span><em id="airDataTag">Fallback</em></div>
+              <strong><b id="liveAqi">42</b><small>US AQI</small></strong>
+              <p><span id="livePm25">11.8</span> µg/m³ PM2.5 · regional CAMS estimate</p>
+            </article>
+            <article>
+              <div class="climate-metric-head"><span>Household scenario</span><em>Estimated</em></div>
+              <strong><b id="mapAverageCarbon">248</b><small>kg CO₂e/home</small></strong>
+              <p>Five illustrative precinct baselines · 0.740 kg CO₂e/kWh</p>
+            </article>
+          </div>
+
+          <section class="climate-simulator">
+            <div class="simulator-intro">
+              <span class="eyebrow">Macro-to-micro simulator</span>
+              <h2>Travel through the climate story—then test a community response.</h2>
+              <p>Global atmospheric concentration provides context. Household electricity scenarios show where residents can act.</p>
+            </div>
+
+            <article class="timeline-panel">
+              <div class="timeline-copy">
+                <div class="timeline-year"><span id="timelineYear">2026</span><em id="timelineBadge">Live context</em></div>
+                <h3 id="timelineTitle">Global concentration, local choices</h3>
+                <p id="timelineDescription">Live global CO₂ is paired with Elmina microclimate context. It is not a local air-quality reading or a household impact metric.</p>
               </div>
-              <p><svg viewBox="0 0 24 24">
-                  <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 8v6m0-10v.2" />
-                </svg> Illustrative scenario only. Actual change must be measured against comparable billing periods.
-              </p>
+              <div class="timeline-reading">
+                <small>Global atmospheric CO₂</small>
+                <strong><b id="timelinePpm">427.4</b> ppm</strong>
+                <span id="timelineComparison">+149.4 ppm from 1850</span>
+              </div>
+              <div class="timeline-control">
+                <input type="range" id="timelineSlider" min="0" max="3" value="2" step="1" aria-label="Climate timeline year">
+                <div class="timeline-stops"><button data-timeline-index="0">1850<small>Pre-industrial</small></button><button data-timeline-index="1">2021<small>SDP baseline</small></button><button class="active" data-timeline-index="2">2026<small>Live</small></button><button data-timeline-index="3">2030<small>SDP target</small></button></div>
+              </div>
+              <div class="timeline-assets" id="timelineAssets">
+                <div><strong>30,100</strong><span>ERT trees planted since 2011</span></div>
+                <div><strong>1,450</strong><span>Elmina Biodiversity Corridor trees</span></div>
+                <div><strong>603 kWp</strong><span>SDP rooftop solar context</span></div>
+                <div><strong>−40%</strong><span>2030 Scope 1 & 2 target</span></div>
+              </div>
+              <p class="timeline-caution">Programme figures are shown as context and are not automatically deducted from household estimates.</p>
             </article>
-          </div>
-          <div class="precinct-metrics">
-            <article><span class="metric-icon lime">01</span>
-              <p>Opted-in demo households</p><strong>128</strong><small>64% of scenario group</small>
-            </article>
-            <article><span class="metric-icon sky">02</span>
-              <p>Monthly submissions</p><strong>96</strong><small>illustrative coverage</small>
-            </article>
-            <article><span class="metric-icon peach">03</span>
-              <p>Actions completed</p><strong>214</strong><small>this month · demo data</small>
-            </article>
+
+            <div class="whatif-grid">
+              <article class="whatif-controls">
+                <span class="eyebrow light">Community what-if</span>
+                <h3>How far could shared energy savings move the pulse?</h3>
+                <label for="householdSlider"><span>Participating Elmina homes</span><output id="householdOutput">200</output></label>
+                <input type="range" id="householdSlider" min="200" max="2000" value="200" step="100">
+                <div class="range-labels"><span>200 homes</span><span>2,000 homes</span></div>
+                <label for="savingSlider"><span>Average energy saved</span><output id="savingOutput">10%</output></label>
+                <input type="range" id="savingSlider" min="0" max="20" value="10" step="1">
+                <div class="range-labels"><span>0%</span><span>20%</span></div>
+                <p>Assumes 300 kWh per home each month and applies the same 0.740 kg CO₂e/kWh factor.</p>
+              </article>
+              <article class="whatif-result">
+                <span class="scenario-label">Illustrative scenario</span>
+                <div class="whatif-primary"><strong id="savedCarbon">4.44</strong><span>t CO₂e less<br>each month</span></div>
+                <div class="whatif-equation"><span id="scenarioHouseholds">200 homes</span><b>×</b><span id="scenarioPerHome">30 kWh saved</span><b>×</b><span>0.740 factor</span></div>
+                <div class="whatif-stats">
+                  <div><span>Energy avoided</span><strong id="savedKwh">6,000 kWh</strong></div>
+                  <div><span>Annualised scenario</span><strong id="annualCarbon">53.28 t CO₂e</strong></div>
+                  <div><span>Tree-month equivalent</span><strong id="treeEquivalent">2,046 trees</strong></div>
+                </div>
+                <div class="corridor-progress"><div><span>Compared with 1,450 Elmina corridor trees</span><b id="treeProgressLabel">141%</b></div><i><span id="treeProgressBar"></span></i><small>Uses an illustrative 2.17 kg CO₂e absorbed per tree/month assumption; not a verified offset credit.</small></div>
+              </article>
+            </div>
+          </section>
+
+          <div class="climate-source-note">
+            <span>Data notes</span>
+            <p>Atmospheric and weather feeds: Open-Meteo with CAMS ENSEMBLE; global CO₂: Global Warming API. Values may fall back to labelled demo data when a feed or CORS is unavailable. Household figures are scenarios—not measured Scope 3 inventory results. Method references: <a href="https://ghgprotocol.org/sites/default/files/2023-03/Scope3_Calculation_Guidance_0%5B1%5D.pdf" target="_blank" rel="noopener noreferrer">GHG Protocol Category 11</a>, <a href="https://myenergystats.st.gov.my/documents/d/guest/grid-emission-factor-gef-in-malaysia-2022-2024-provisional-" target="_blank" rel="noopener noreferrer">Energy Commission grid factor</a>, and <a href="https://www.simedarbyproperty.com/sites/default/files/2024-04/Sustainability-Report-2023.pdf" target="_blank" rel="noopener noreferrer">SDP Sustainability Report 2023</a>.</p>
           </div>
         </section>
 
@@ -488,9 +569,10 @@
             <path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" />
           </svg></span>
         <strong id="uploadTitle">Choose a bill image</strong>
-        <small id="uploadHint">PNG, JPG or PDF · processed locally for this demo</small>
+        <small id="uploadHint">PNG, JPG or PDF · attached locally as your reference (never uploaded)</small>
       </label>
       <div class="or-divider"><span>or enter manually</span></div>
+      <button type="button" class="secondary-button sample-bill-button" id="loadSampleBill">Use sample bill (270 kWh)</button>
       <label class="field-label" for="kwhInput">Confirmed electricity usage</label>
       <div class="input-unit"><input id="kwhInput" type="number" min="1" max="3000" value="300"><span>kWh</span></div>
       <label class="consent-row"><input type="checkbox" id="consentInput"><span><b>Include my anonymized result in the
@@ -529,7 +611,11 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span>
     <p><strong>September usage updated</strong><small>Your estimate and charts are now refreshed.</small></p>
   </div>
-  <script src="app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>window.CARBONPULSE_CARTO_KEY = window.CARBONPULSE_CARTO_KEY || "";</script>
+  <script src="config.local.js" onerror="this.remove()"></script>
+  <script src="app.js?v=20261020-4"></script>
 </body>
 
 </html>
