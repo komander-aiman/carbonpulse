@@ -6,6 +6,7 @@ Forward-only migrations. Each file states its rollback note at the top.
 |---|---|
 | `migrations/0001_init.sql` | Tables, constraints, indexes, `v_active_factor` |
 | `migrations/0002_rls.sql` | RLS policies, `current_household_id()`, `v_public_cohort_stats`, `v_cohort_stats_published` |
+| `migrations/0003_server_role.sql` | Explicit server-only Data API grants when automatic table exposure is disabled |
 | `seeds/reference.sql` | Township, 6 subzones, 5 factor versions, model version, 8 action evidence rows |
 
 ## Applying
@@ -13,6 +14,7 @@ Forward-only migrations. Each file states its rollback note at the top.
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0002_rls.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0003_server_role.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/seeds/reference.sql
 ```
 

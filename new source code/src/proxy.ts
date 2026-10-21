@@ -81,6 +81,17 @@ export default async function proxy(request: NextRequest) {
   const existing = request.cookies.get(COOKIE_NAME)?.value;
   const needsSession = !(existing && (await isValid(existing)));
 
+  let newSessionToken: string | null = null;
+  if (needsSession) {
+    const householdId = crypto.randomUUID();
+    newSessionToken = `${householdId}.${await sign(householdId)}`;
+    const cookieHeader = requestHeaders.get("cookie");
+    requestHeaders.set(
+      "cookie",
+      `${cookieHeader ? `${cookieHeader}; ` : ""}${COOKIE_NAME}=${newSessionToken}`,
+    );
+  }
+
   const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   response.headers.set("Content-Security-Policy", csp);
@@ -90,9 +101,8 @@ export default async function proxy(request: NextRequest) {
   response.headers.set("Permissions-Policy", "geolocation=(), camera=(), microphone=()");
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
 
-  if (needsSession) {
-    const householdId = crypto.randomUUID();
-    response.cookies.set(COOKIE_NAME, `${householdId}.${await sign(householdId)}`, {
+  if (newSessionToken) {
+    response.cookies.set(COOKIE_NAME, newSessionToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

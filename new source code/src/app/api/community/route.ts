@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readSession } from "@/lib/session";
 import { currentHouseholdId } from "@/lib/current-household";
 import { buildCommunityViewModel } from "@/lib/community-view";
-import { getConsent, getHousehold, latestUsage } from "@/lib/household-store";
+import { getConsent, latestUsage, loadHousehold } from "@/lib/household-store";
 
 /**
  * Cohort read. Every household-scoped value is resolved from the signed session;
@@ -13,11 +13,11 @@ export async function GET(request: Request) {
   const township = url.searchParams.get("township") ?? "elmina";
   const session = await readSession();
   const householdId = await currentHouseholdId();
-  const data = getHousehold(householdId);
+  const data = await loadHousehold(householdId, false);
   const consent = getConsent(householdId, "aggregation");
-  const current = data ? latestUsage(data) : null;
+  const current = latestUsage(data);
 
-  const view = buildCommunityViewModel(
+  const view = await buildCommunityViewModel(
     session?.householdId ?? householdId,
     current?.kwh ?? null,
     consent?.granted ?? false,

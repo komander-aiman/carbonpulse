@@ -2,13 +2,19 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ensureSession, sessionCookie } from "@/lib/session";
 import { rateLimit, sessionKey } from "@/lib/rate-limit";
-import { ensureHousehold, saveUsage, recordConsent } from "@/lib/household-store";
+import {
+  loadHousehold,
+  recordConsentPersistent,
+  saveUsagePersistent,
+  updateHouseholdArchetypePersistent,
+} from "@/lib/household-store";
 import { parseIntervalCsv, validateIntervals, intervalEstimate } from "@/domain/carbon/interval";
 import { CONSENT_POLICY_VERSION } from "@/lib/config";
-import { saveImport } from "@/lib/interval-store";
+import { saveImportPersistent } from "@/lib/interval-store";
 import { syncHouseholdToCohort } from "@/lib/community-store";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -30,7 +36,7 @@ const manualSchema = z.object({
 
 async function bindSession(): Promise<string> {
   const session = await ensureSession();
-  ensureHousehold(session.householdId);
+  await loadHousehold(session.householdId, false);
   const store = await cookies();
   const cookie = sessionCookie(session.householdId);
   store.set(cookie.name, cookie.value, cookie.options);
@@ -56,7 +62,8 @@ export async function saveManualUsage(_prev: FormState, formData: FormData): Pro
   }
 
   const householdId = await bindSession();
-  const result = saveUsage(householdId, {
+  await updateHouseholdArchetypePersistent(householdId, parsed.data.archetype);
+  const result = await saveUsagePersistent(householdId, {
     periodStart: parsed.data.periodStart,
     periodEnd: parsed.data.periodEnd,
     kwh: parsed.data.kwh,
@@ -68,7 +75,7 @@ export async function saveManualUsage(_prev: FormState, formData: FormData): Pro
   }
 
   if (parsed.data.consent) {
-    recordConsent(householdId, "aggregation", true, CONSENT_POLICY_VERSION);
+    await recordConsentPersistent(householdId, "aggregation", true, CONSENT_POLICY_VERSION);
   }
   syncHouseholdToCohort(householdId);
   redirect("/energy?saved=manual");
@@ -129,7 +136,7 @@ export async function importIntervalCsv(_prev: FormState, formData: FormData): P
     .toISOString()
     .slice(0, 10);
 
-  const result = saveUsage(householdId, {
+  const result = await saveUsagePersistent(householdId, {
     periodStart,
     periodEnd: periodEndExclusive,
     kwh: Math.round(validation.totalKwh * 1000) / 1000,
@@ -140,8 +147,8 @@ export async function importIntervalCsv(_prev: FormState, formData: FormData): P
     return { ok: false, message: result.message };
   }
 
-  saveImport({
-    id: `import-${Date.now()}`,
+  await saveImportPersistent({
+    id: randomUUID(),
     householdId,
     periodStart,
     periodEnd: periodEndExclusive,
@@ -159,7 +166,7 @@ export async function importIntervalCsv(_prev: FormState, formData: FormData): P
 
 export async function setConsent(granted: boolean): Promise<{ ok: boolean; message: string }> {
   const householdId = await bindSession();
-  recordConsent(householdId, "aggregation", granted, CONSENT_POLICY_VERSION);
+  await recordConsentPersistent(householdId, "aggregation", granted, CONSENT_POLICY_VERSION);
   syncHouseholdToCohort(householdId);
   return {
     ok: true,

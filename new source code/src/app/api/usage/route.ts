@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 import { ensureSession } from "@/lib/session";
-import { ensureHousehold, saveUsage, getHousehold } from "@/lib/household-store";
+import { loadHousehold, saveUsagePersistent } from "@/lib/household-store";
 import { buildEnergyViewModel } from "@/lib/view-model";
 
 const usageSchema = z.object({
@@ -17,8 +17,7 @@ const usageSchema = z.object({
 
 export async function GET() {
   const session = await ensureSession();
-  const data = getHousehold(session.householdId);
-  if (!data) return NextResponse.json({ ok: false, error: { code: "not_found", message: "No household." } }, { status: 404 });
+  const data = await loadHousehold(session.householdId, false);
   return NextResponse.json({ ok: true, data: buildEnergyViewModel(data) });
 }
 
@@ -47,14 +46,13 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  ensureHousehold(session.householdId);
-  const result = saveUsage(session.householdId, { ...parsed.data, source: "manual" });
+  const result = await saveUsagePersistent(session.householdId, { ...parsed.data, source: "manual" });
   if (!result.ok) {
     return NextResponse.json(
       { ok: false, error: { code: result.code, message: result.message } },
       { status: 422 },
     );
   }
-  const data = getHousehold(session.householdId);
-  return NextResponse.json({ ok: true, data: data ? buildEnergyViewModel(data) : null }, { status: 201 });
+  const data = await loadHousehold(session.householdId, false);
+  return NextResponse.json({ ok: true, data: buildEnergyViewModel(data) }, { status: 201 });
 }

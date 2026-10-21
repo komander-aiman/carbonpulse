@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { readSession } from "@/lib/session";
-import { ensureHousehold } from "@/lib/household-store";
+import { loadHousehold } from "@/lib/household-store";
 import { scenario } from "@/domain/community";
 import { getActiveFactor } from "@/domain/carbon/factors";
 import { ensureSession } from "@/lib/session";
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   const session = await readSession();
-  if (session) ensureHousehold(session.householdId, false);
+  if (session) await loadHousehold(session.householdId, false);
   else await ensureSession();
 
   const factor = getActiveFactor();

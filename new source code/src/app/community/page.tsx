@@ -22,7 +22,7 @@ export default async function CommunityPage() {
   const energy = buildEnergyViewModel(data);
   const consent = getConsent(data.household.id, "aggregation");
   const consentGranted = consent?.granted ?? false;
-  const community = buildCommunityViewModel(
+  const community = await buildCommunityViewModel(
     data.household.id,
     energy.current?.kwh ?? null,
     consentGranted,
