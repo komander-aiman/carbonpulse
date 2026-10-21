@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { IntervalReading } from "@/domain/carbon/types";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export interface IntervalImport {
   readonly id: string;
@@ -45,4 +46,42 @@ export function findImportForPeriod(householdId: string, periodStart: string): I
 
 export function deleteImports(householdId: string): void {
   store().imports.delete(householdId);
+}
+
+export async function saveImportPersistent(record: IntervalImport): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) {
+    saveImport(record);
+    return;
+  }
+
+  const { error: importError } = await db.from("usage_import").insert({
+    id: record.id,
+    household_id: record.householdId,
+    file_name: record.fileName,
+    row_count: record.readings.length,
+    coverage_pct: record.coveragePct,
+    period_start: record.periodStart,
+    period_end: record.periodEnd,
+    imported_at: record.importedAt,
+  });
+  if (importError) throw new Error(`Supabase import metadata save failed: ${importError.message}`);
+
+  const rows = record.readings.map((reading) => ({
+    household_id: record.householdId,
+    interval_start: reading.start,
+    kwh: reading.kwh,
+    import_id: record.id,
+  }));
+
+  for (let offset = 0; offset < rows.length; offset += 500) {
+    const { error } = await db.from("usage_interval").insert(rows.slice(offset, offset + 500));
+    if (error) {
+      await db.from("usage_interval").delete().eq("import_id", record.id);
+      await db.from("usage_import").delete().eq("id", record.id);
+      throw new Error(`Supabase interval save failed: ${error.message}`);
+    }
+  }
+
+  saveImport(record);
 }

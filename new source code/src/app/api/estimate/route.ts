@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 import { ensureSession } from "@/lib/session";
-import { ensureHousehold, getHousehold } from "@/lib/household-store";
+import { loadHousehold } from "@/lib/household-store";
 import { flatEstimate, modelledEstimate } from "@/domain/carbon/estimates";
 import { getActiveFactor } from "@/domain/carbon/factors";
 import { buildIntensityProfile } from "@/domain/carbon/intensity";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  const data = ensureHousehold(session.householdId);
+  const data = await loadHousehold(session.householdId, false);
   const factor = getActiveFactor();
   const profile = buildIntensityProfile();
 
@@ -86,8 +86,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   const session = await ensureSession();
-  const data = getHousehold(session.householdId);
-  if (!data) return NextResponse.json({ ok: true, data: [] });
+  const data = await loadHousehold(session.householdId, false);
   const factor = getActiveFactor();
   const profile = buildIntensityProfile();
   return NextResponse.json({

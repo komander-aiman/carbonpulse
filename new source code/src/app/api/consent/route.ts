@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
 import { rateLimit, clientKey, tooManyRequests } from "@/lib/rate-limit";
 import { ensureSession } from "@/lib/session";
-import { ensureHousehold, recordConsent, getConsent } from "@/lib/household-store";
+import { getConsent, loadHousehold, recordConsentPersistent } from "@/lib/household-store";
 import { syncHouseholdToCohort, removeFromCohort } from "@/lib/community-store";
 import { CONSENT_POLICY_VERSION } from "@/lib/config";
 
@@ -14,7 +14,7 @@ const schema = z.object({
 
 export async function GET() {
   const session = await ensureSession();
-  ensureHousehold(session.householdId);
+  await loadHousehold(session.householdId, false);
   return NextResponse.json({
     ok: true,
     data: {
@@ -41,9 +41,13 @@ export async function POST(request: Request) {
   }
 
   const session = await ensureSession();
-  ensureHousehold(session.householdId);
   const granted = parsed.data.action === "granted";
-  const record = recordConsent(session.householdId, parsed.data.scope, granted, CONSENT_POLICY_VERSION);
+  const record = await recordConsentPersistent(
+    session.householdId,
+    parsed.data.scope,
+    granted,
+    CONSENT_POLICY_VERSION,
+  );
 
   if (parsed.data.scope === "aggregation") {
     if (granted) syncHouseholdToCohort(session.householdId);

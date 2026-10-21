@@ -4,7 +4,7 @@ import { getActiveFactor } from "@/domain/carbon/factors";
 import { cohortStats, coarseBand, type CohortRecord, type CohortResult } from "@/domain/community";
 import { DEMO_COHORT_SIZE, demoCohort } from "@/db/demo";
 import { SUBZONES } from "@/db/geo";
-import { listConsentedCohort } from "@/lib/community-store";
+import { hydrateConsentedCohort, listConsentedCohort } from "@/lib/community-store";
 import { DEMO_MODE } from "@/lib/config";
 
 export interface SubzoneStat {
@@ -31,13 +31,14 @@ function toRecords(
   return rows.filter((row) => row.township === township);
 }
 
-export function buildCommunityViewModel(
+export async function buildCommunityViewModel(
   householdId: string,
   householdKwh: number | null,
   consentGranted: boolean,
   township = "elmina",
-): CommunityViewModel {
+): Promise<CommunityViewModel> {
   const factor = getActiveFactor("peninsular");
+  await hydrateConsentedCohort();
 
   // The viewer is part of their own cohort. Excluding them meant a cohort of
   // exactly k = 10 consenting households showed "suppressed" to every member,

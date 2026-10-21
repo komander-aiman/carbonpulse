@@ -46,7 +46,7 @@ export default async function AdminPage() {
 
   const data = await currentHousehold();
   const consent = getConsent(data.household.id, "aggregation");
-  const community = buildCommunityViewModel(data.household.id, null, consent?.granted ?? false);
+  const community = await buildCommunityViewModel(data.household.id, null, consent?.granted ?? false);
   const factor = getActiveFactor();
   const draft = SEED_ARTICLES[0]!;
   const preview = renderMarkdown(draft.bodyMarkdown);

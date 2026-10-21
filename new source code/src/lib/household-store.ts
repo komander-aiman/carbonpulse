@@ -1,8 +1,10 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { DEMO_COMPLETED_ACTIONS, DEMO_HOUSEHOLD, DEMO_PERIODS } from "@/db/demo";
 import type { HouseholdActionState } from "@/domain/actions";
 import { DEMO_MODE } from "@/lib/config";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export interface UsageRecord {
   readonly id: string;
@@ -251,7 +253,7 @@ export function saveUsage(householdId: string, input: SaveUsageInput): SaveUsage
   const retained = replacedDemo ? [] : data.usage;
 
   const record: UsageRecord = {
-    id: `usage-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: randomUUID(),
     householdId,
     periodStart: input.periodStart,
     periodEnd: input.periodEnd,
@@ -317,4 +319,256 @@ export function trailingKwh(data: HouseholdData, count = 3): number[] {
 
 export function previousUsage(data: HouseholdData): UsageRecord | null {
   return data.usage.length >= 2 ? (data.usage.at(-2) ?? null) : null;
+}
+
+interface HouseholdRow {
+  readonly id: string;
+  readonly display_name: string | null;
+  readonly township_id: string;
+  readonly subzone_id: string | null;
+  readonly archetype: string;
+  readonly is_demo: boolean;
+}
+
+interface UsageRow {
+  readonly id: string;
+  readonly household_id: string;
+  readonly period_start: string;
+  readonly period_end: string;
+  readonly kwh: number | string;
+  readonly source: "manual" | "csv" | "derived";
+  readonly confirmed_at: string;
+  readonly is_demo: boolean;
+}
+
+interface ActionRow {
+  readonly action_id: string;
+  readonly state: HouseholdActionState;
+  readonly updated_at: string;
+}
+
+interface ConsentRow {
+  readonly scope: "aggregation" | "content";
+  readonly action: "granted" | "withdrawn";
+  readonly policy_version: string;
+  readonly created_at: string;
+}
+
+function databaseError(operation: string, message: string): Error {
+  return new Error(`Supabase ${operation} failed: ${message}`);
+}
+
+async function referenceSlug(table: "township" | "subzone", id: string | null): Promise<string> {
+  if (!id) return "elmina-central";
+  const db = supabaseAdmin();
+  if (!db) return table === "township" ? "elmina" : "elmina-central";
+  const { data, error } = await db.from(table).select("slug").eq("id", id).single();
+  if (error) throw databaseError(`reading ${table}`, error.message);
+  return String(data.slug);
+}
+
+async function createDatabaseHousehold(householdId: string, demo: boolean): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { data: township, error: townshipError } = await db
+    .from("township")
+    .select("id")
+    .eq("slug", "elmina")
+    .single();
+  if (townshipError) throw databaseError("finding the Elmina township", townshipError.message);
+
+  const { data: subzone, error: subzoneError } = await db
+    .from("subzone")
+    .select("id")
+    .eq("township_id", township.id)
+    .eq("slug", demo ? "elmina-north" : "elmina-central")
+    .single();
+  if (subzoneError) throw databaseError("finding the default subzone", subzoneError.message);
+
+  const { error } = await db.from("household").insert({
+    id: householdId,
+    display_name: demo ? DEMO_HOUSEHOLD.displayName : "Your household",
+    township_id: township.id,
+    subzone_id: subzone.id,
+    archetype: demo ? DEMO_HOUSEHOLD.archetype : "mixed",
+    is_demo: demo,
+  });
+  if (error && error.code !== "23505") throw databaseError("creating a household", error.message);
+}
+
+/** Load one signed-cookie household from Postgres, or use the in-memory demo. */
+export async function loadHousehold(
+  householdId: string,
+  demo: boolean = DEMO_MODE,
+): Promise<HouseholdData> {
+  const db = supabaseAdmin();
+  if (!db) return ensureHousehold(householdId, demo);
+
+  let response = await db
+    .from("household")
+    .select("id,display_name,township_id,subzone_id,archetype,is_demo")
+    .eq("id", householdId)
+    .maybeSingle();
+  if (response.error) throw databaseError("reading a household", response.error.message);
+
+  if (!response.data) {
+    await createDatabaseHousehold(householdId, demo);
+    response = await db
+      .from("household")
+      .select("id,display_name,township_id,subzone_id,archetype,is_demo")
+      .eq("id", householdId)
+      .single();
+    if (response.error) throw databaseError("reading the new household", response.error.message);
+  }
+
+  const row = response.data as HouseholdRow;
+  const [township, subzone, usageResponse, actionResponse, consentResponse] = await Promise.all([
+    referenceSlug("township", row.township_id),
+    referenceSlug("subzone", row.subzone_id),
+    db
+      .from("usage_month")
+      .select("id,household_id,period_start,period_end,kwh,source,confirmed_at,is_demo")
+      .eq("household_id", householdId)
+      .order("period_start"),
+    db
+      .from("household_action")
+      .select("action_id,state,updated_at")
+      .eq("household_id", householdId),
+    db
+      .from("consent_event")
+      .select("scope,action,policy_version,created_at")
+      .eq("household_id", householdId)
+      .order("created_at"),
+  ]);
+
+  if (usageResponse.error) throw databaseError("reading usage", usageResponse.error.message);
+  if (actionResponse.error) throw databaseError("reading actions", actionResponse.error.message);
+  if (consentResponse.error) throw databaseError("reading consent", consentResponse.error.message);
+
+  const data: HouseholdData = {
+    household: {
+      id: row.id,
+      displayName: row.display_name ?? "Your household",
+      township,
+      subzone,
+      archetype: row.archetype,
+      isDemo: row.is_demo,
+    },
+    usage: (usageResponse.data as UsageRow[]).map((usage) => ({
+      id: usage.id,
+      householdId: usage.household_id,
+      periodStart: usage.period_start,
+      periodEnd: usage.period_end,
+      kwh: Number(usage.kwh),
+      source: usage.source,
+      confirmedAt: usage.confirmed_at,
+      isDemo: usage.is_demo,
+    })),
+    actions: (actionResponse.data as ActionRow[]).map((action) => ({
+      actionId: action.action_id,
+      state: action.state,
+      updatedAt: action.updated_at,
+    })),
+    consents: (consentResponse.data as ConsentRow[]).map((consent) => ({
+      scope: consent.scope,
+      granted: consent.action === "granted",
+      policyVersion: consent.policy_version,
+      updatedAt: consent.created_at,
+    })),
+  };
+
+  persist(data);
+  return data;
+}
+
+export async function saveUsagePersistent(
+  householdId: string,
+  input: SaveUsageInput,
+): Promise<SaveUsageResult> {
+  const before = await loadHousehold(householdId, false);
+  const result = saveUsage(householdId, input);
+  if (!result.ok) return result;
+
+  const db = supabaseAdmin();
+  if (!db) return result;
+  const { record } = result;
+  const { error } = await db.from("usage_month").insert({
+    id: record.id,
+    household_id: householdId,
+    period_start: record.periodStart,
+    period_end: record.periodEnd,
+    kwh: record.kwh,
+    source: record.source,
+    confirmed_at: record.confirmedAt,
+    is_demo: false,
+  });
+  if (error) {
+    persist(before);
+    throw databaseError("saving usage", error.message);
+  }
+  const { error: householdError } = await db
+    .from("household")
+    .update({ is_demo: false })
+    .eq("id", householdId);
+  if (householdError) throw databaseError("updating the household", householdError.message);
+  return result;
+}
+
+export async function setActionStatePersistent(
+  householdId: string,
+  actionId: string,
+  state: HouseholdActionState,
+): Promise<void> {
+  await loadHousehold(householdId, false);
+  const db = supabaseAdmin();
+  if (db) {
+    const { error } = await db.from("household_action").upsert(
+      {
+        household_id: householdId,
+        action_id: actionId,
+        evidence_version: "actions-1.0.0",
+        state,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "household_id,action_id" },
+    );
+    if (error) throw databaseError("saving an action", error.message);
+  }
+  setActionState(householdId, actionId, state);
+}
+
+export async function recordConsentPersistent(
+  householdId: string,
+  scope: "aggregation" | "content",
+  granted: boolean,
+  policyVersion: string,
+): Promise<ConsentRecord> {
+  await loadHousehold(householdId, false);
+  const now = new Date().toISOString();
+  const db = supabaseAdmin();
+  if (db) {
+    const { error } = await db.from("consent_event").insert({
+      household_id: householdId,
+      scope,
+      action: granted ? "granted" : "withdrawn",
+      policy_version: policyVersion,
+      created_at: now,
+    });
+    if (error) throw databaseError("saving consent", error.message);
+  }
+  return recordConsent(householdId, scope, granted, policyVersion);
+}
+
+export async function updateHouseholdArchetypePersistent(
+  householdId: string,
+  archetype: "ac_evening" | "ac_all_day" | "workday_absent" | "mixed",
+): Promise<void> {
+  const data = await loadHousehold(householdId, false);
+  const db = supabaseAdmin();
+  if (db) {
+    const { error } = await db.from("household").update({ archetype }).eq("id", householdId);
+    if (error) throw databaseError("saving the household profile", error.message);
+  }
+  persist({ ...data, household: { ...data.household, archetype } });
 }

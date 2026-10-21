@@ -4,6 +4,8 @@ CarbonPulse is a responsive, buildless web prototype based on the hackathon prop
 
 It turns a resident's monthly electricity usage into an explainable emissions estimate, practical household actions, and a clearly labelled precinct scenario.
 
+The first-time guided journey moves from bill confirmation to a three-question household profile, a personalized multi-select action plan, and a separate explicit privacy choice. Action selection and action completion are tracked independently; sharing defaults to off and the community view retains its 50-home cohort threshold.
+
 The **Climate view** combines:
 
 - an interactive Leaflet township map with household-footprint and current-atmosphere modes, light/dark styles, and township/Malaysia extents;

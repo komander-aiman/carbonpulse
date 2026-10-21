@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSession } from "@/lib/session";
-import { ensureHousehold, getHousehold, setActionState } from "@/lib/household-store";
+import { loadHousehold, setActionStatePersistent } from "@/lib/household-store";
 import { buildActionsViewModel } from "@/lib/view-model";
 import { z } from "zod";
 import { isSameOrigin, forbiddenOrigin } from "@/lib/csrf";
@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function GET() {
   const session = await ensureSession();
-  const data = ensureHousehold(session.householdId);
+  const data = await loadHousehold(session.householdId, false);
   return NextResponse.json({ ok: true, data: buildActionsViewModel(data) });
 }
 
@@ -28,8 +28,7 @@ export async function POST(request: Request) {
     );
   }
   const session = await ensureSession();
-  ensureHousehold(session.householdId);
-  setActionState(session.householdId, parsed.data.actionId, parsed.data.state);
-  const data = getHousehold(session.householdId);
-  return NextResponse.json({ ok: true, data: data ? buildActionsViewModel(data) : null });
+  await setActionStatePersistent(session.householdId, parsed.data.actionId, parsed.data.state);
+  const data = await loadHousehold(session.householdId, false);
+  return NextResponse.json({ ok: true, data: buildActionsViewModel(data) });
 }
