@@ -10,7 +10,7 @@
   <title>CarbonPulse · My Energy</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIINfQ3ynJb+MZqjMZrF2dN/LhPVRA4hLw=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=20261020-4">
+  <link rel="stylesheet" href="styles.css?v=20261021-3">
 </head>
 
 <body>
@@ -51,7 +51,7 @@
           <svg viewBox="0 0 24 24">
             <path d="M3 20V9l5-4 5 4v11M13 12l4-3 4 3v8M6 20v-5h4v5M16 20v-4h2v4" />
           </svg>
-          Precinct pulse
+          Climate view
         </button>
         <button class="nav-item" data-view="learn">
           <svg viewBox="0 0 24 24">
@@ -165,7 +165,7 @@
                 <span class="evidence-tag practical">Practical</span>
               </div>
               <p>Action progress</p>
-              <div class="metric-number"><strong id="actionDone">1</strong><span>of 3 done</span></div>
+              <div class="metric-number"><strong id="actionDone">0</strong><span>of <b id="selectedActionTotal">0</b> in your plan</span></div>
               <div class="action-dots"><i class="done"></i><i></i><i></i></div>
               <button class="inline-link" data-nav-to="actions">Continue your plan →</button>
             </article>
@@ -186,18 +186,18 @@
             <article class="panel next-action-panel">
               <div class="panel-heading">
                 <div><span class="eyebrow">Best next step</span>
-                  <h2>Cool smarter</h2>
+                  <h2 id="overviewActionTitle">Set up your household</h2>
                 </div>
-                <span class="impact-pill">High impact</span>
+                <span class="impact-pill" id="overviewImpactPill">Personalized</span>
               </div>
-              <div class="action-illustration" aria-hidden="true">
+              <div class="action-illustration" id="overviewActionIllustration" aria-hidden="true">
                 <span class="sun"></span>
                 <span class="ac-unit"><i></i><i></i><i></i></span>
                 <span class="air-line line-a"></span><span class="air-line line-b"></span><span
                   class="air-line line-c"></span>
                 <span class="plant">⌁</span>
               </div>
-              <p>Set your air conditioner to 24–26°C and use the timer at night.</p>
+              <p id="overviewActionDescription">Answer three short questions so CarbonPulse can recommend a practical starting point.</p>
               <div class="potential"><span>Illustrative potential</span><strong id="overviewActionPotential">12–18 kWh / month</strong></div>
               <button class="secondary-button" data-nav-to="actions">View action plan</button>
             </article>
@@ -208,7 +208,7 @@
               <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
             </div>
             <div class="precinct-copy">
-              <span class="eyebrow light">Precinct pulse · What-if scenario</span>
+              <span class="eyebrow light">Climate view · What-if scenario</span>
               <h2>What if 200 households saved 10%?</h2>
               <p>Small household changes could add up to meaningful community progress.</p>
             </div>
@@ -309,30 +309,38 @@
             </div>
             <div class="plan-score"><strong id="planPercent">33%</strong><span>plan complete</span></div>
           </div>
+          <div class="profile-summary" id="profileSummary">
+            <div>
+              <span class="eyebrow">Household profile</span>
+              <strong id="profileSummaryTitle">No profile added yet</strong>
+              <p id="profileSummaryText">Answer three short questions to personalize your recommendations.</p>
+            </div>
+            <button class="secondary-button" id="editHouseholdProfile">Set up household</button>
+          </div>
           <div class="action-list" id="actionList">
             <article class="plan-card completed" data-action-id="temperature">
-              <button class="action-check" aria-label="Mark temperature action incomplete">✓</button>
+              <div class="completion-control"><button class="action-check" aria-label="Mark temperature action incomplete">✓</button><span>Completed</span></div>
               <div class="plan-icon temp"><svg viewBox="0 0 24 24">
                   <path d="M14 14.8V5a3 3 0 0 0-6 0v9.8a5 5 0 1 0 6 0ZM11 6v10" />
                 </svg></div>
               <div class="plan-copy">
-                <div class="plan-meta"><span class="impact-pill">High impact</span><span>Air conditioning</span></div>
+                <div class="plan-meta"><span class="impact-pill">High impact</span><span>Air conditioning</span><span class="profile-match">Recommended</span></div>
                 <h2>Keep cooling at 24–26°C</h2>
                 <p>Pair the temperature setting with a fan and close doors to cool the occupied space first.</p><button
                   class="tip-toggle">Why this fits your home <span>+</span></button>
-                <div class="tip-detail">Cooling is your largest self-reported appliance category. A small thermostat
-                  adjustment is an easy, repeatable habit.</div>
+                <div class="tip-detail">For homes that regularly use air conditioning, a small thermostat adjustment
+                  can be an easy, repeatable habit.</div>
               </div>
-              <div class="plan-saving"><span>Illustrative potential</span><strong id="temperatureSaving">12–18</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="temperatureSaving">12–18</strong><small>kWh / month</small><button class="plan-select" type="button" aria-pressed="false">Add to my plan</button></div>
             </article>
             <article class="plan-card" data-action-id="timer">
-              <button class="action-check" aria-label="Mark timer action complete"></button>
+              <div class="completion-control"><button class="action-check" aria-label="Mark timer action complete"></button><span>Completed</span></div>
               <div class="plan-icon timer"><svg viewBox="0 0 24 24">
                   <circle cx="12" cy="13" r="8" />
                   <path d="M12 13V8m0 5 3 2M9 2h6" />
                 </svg></div>
               <div class="plan-copy">
-                <div class="plan-meta"><span class="impact-pill medium">Medium impact</span><span>Night routine</span>
+                <div class="plan-meta"><span class="impact-pill medium">Medium impact</span><span>Night routine</span><span class="profile-match">Recommended</span>
                 </div>
                 <h2>Use a 2-hour sleep timer</h2>
                 <p>Pre-cool the room, then let the timer switch off the air conditioner after you fall asleep.</p>
@@ -340,22 +348,22 @@
                 <div class="tip-detail">Set one reusable timer on the remote tonight. Keep a fan on low after the air
                   conditioner stops.</div>
               </div>
-              <div class="plan-saving"><span>Illustrative potential</span><strong id="timerSaving">8–12</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="timerSaving">8–12</strong><small>kWh / month</small><button class="plan-select" type="button" aria-pressed="false">Add to my plan</button></div>
             </article>
             <article class="plan-card" data-action-id="standby">
-              <button class="action-check" aria-label="Mark standby action complete"></button>
+              <div class="completion-control"><button class="action-check" aria-label="Mark standby action complete"></button><span>Completed</span></div>
               <div class="plan-icon plug"><svg viewBox="0 0 24 24">
                   <path d="M8 3v6m8-6v6M6 9h12v2a6 6 0 0 1-6 6v4m-3 0h6" />
                 </svg></div>
               <div class="plan-copy">
-                <div class="plan-meta"><span class="impact-pill easy">Easy win</span><span>Standby power</span></div>
+                <div class="plan-meta"><span class="impact-pill easy">Easy win</span><span>Standby power</span><span class="profile-match">Recommended</span></div>
                 <h2>Switch off one entertainment zone</h2>
                 <p>Use a switched power strip for the TV, console, speakers and chargers when they are idle.</p><button
                   class="tip-toggle">Make it easier <span>+</span></button>
                 <div class="tip-detail">Place the power strip where the switch is visible. Add it to your leaving-home
                   routine.</div>
               </div>
-              <div class="plan-saving"><span>Illustrative potential</span><strong id="standbySaving">3–5</strong><small>kWh / month</small></div>
+              <div class="plan-saving"><span>Illustrative potential</span><strong id="standbySaving">3–5</strong><small>kWh / month</small><button class="plan-select" type="button" aria-pressed="false">Add to my plan</button></div>
             </article>
           </div>
           <div class="plan-footer">
@@ -368,13 +376,17 @@
                 <circle class="ring-progress" cx="50" cy="50" r="39" />
               </svg><span id="targetRingLabel"><b>30</b> kWh<br>goal</span></div>
           </div>
+          <div class="plan-next-step">
+            <div><span class="eyebrow">Next step</span><strong>Confirm your plan, then choose your privacy setting.</strong><p>Your result remains private unless you explicitly opt in.</p></div>
+            <button class="primary-button" id="continueToSharing">Save plan &amp; continue</button>
+          </div>
         </section>
 
         <section class="view" id="view-precinct" data-view-panel="precinct">
           <div class="page-heading compact-heading precinct-heading">
-            <div><span class="eyebrow">Precinct pulse · City of Elmina</span>
-              <h1>From global climate to local action.</h1>
-              <p>Explore live atmospheric context alongside transparent household energy scenarios.</p>
+            <div><span class="eyebrow">Climate view · City of Elmina</span>
+              <h1>From local conditions to shared climate action.</h1>
+              <p>Explore current atmospheric model estimates alongside transparent household electricity-footprint scenarios.</p>
             </div>
             <div class="live-data-state" id="liveDataState"><i></i><span><b>Connecting</b> to climate feeds</span></div>
           </div>
@@ -387,13 +399,12 @@
           <article class="climate-map-card">
             <div class="map-title-block">
               <span class="map-kicker">Sime Darby Property townships</span>
-              <h2>Township climate pulse</h2>
+              <h2>Township climate view</h2>
               <p id="mapLayerDescription">Illustrative monthly electricity-use scenario informed by GHG Protocol Scope 3 Category 11 (Use of Sold Products) using the 2024 provisional Peninsular Malaysia grid factor (0.740 kg CO₂e/kWh). Not an SDP corporate emissions inventory.</p>
             </div>
             <div class="map-layer-switcher" role="group" aria-label="Map data layer">
-              <button class="active" data-map-layer="scope">Household Scope 3 scenario</button>
-              <button data-map-layer="co2">Atmospheric CO₂</button>
-              <button data-map-layer="air">Air quality & CO</button>
+              <button class="active" data-map-layer="scope">Household footprint</button>
+              <button data-map-layer="atmosphere">Current atmosphere</button>
             </div>
             <div class="map-display-controls" role="group" aria-label="Map appearance and extent">
               <button id="mapExtentToggle" type="button" aria-pressed="false">Malaysia view</button>
@@ -575,11 +586,60 @@
       <button type="button" class="secondary-button sample-bill-button" id="loadSampleBill">Use sample bill (270 kWh)</button>
       <label class="field-label" for="kwhInput">Confirmed electricity usage</label>
       <div class="input-unit"><input id="kwhInput" type="number" min="1" max="3000" value="300"><span>kWh</span></div>
-      <label class="consent-row"><input type="checkbox" id="consentInput"><span><b>Include my anonymized result in the
-            precinct demo</b><small>You can change this anytime. Individual bill details are never shown
-            publicly.</small></span></label>
-      <button class="primary-button full-button" id="confirmBill">Confirm & analyse</button>
+      <button class="primary-button full-button" id="confirmBill">Continue: tell us about your home</button>
       <p class="form-error" id="formError" role="alert"></p>
+    </div>
+  </div>
+
+  <div class="modal" id="householdModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="householdModalTitle">
+    <div class="modal-backdrop" data-close-household></div>
+    <div class="modal-card household-card">
+      <button class="modal-close" data-close-household aria-label="Close">×</button>
+      <span class="eyebrow">Household setup · 3 questions</span>
+      <h2 id="householdModalTitle">Tell us what your home is like.</h2>
+      <p>These answers stay in this browser and only tailor your recommendations. No name or address is requested.</p>
+      <fieldset class="quiz-question">
+        <legend><span>1</span> What type of home do you live in?</legend>
+        <div class="option-grid three-options">
+          <label><input type="radio" name="homeType" value="apartment"><span>Apartment</span></label>
+          <label><input type="radio" name="homeType" value="terrace"><span>Terrace</span></label>
+          <label><input type="radio" name="homeType" value="larger"><span>Semi-D / bungalow</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="quiz-question">
+        <legend><span>2</span> How many people live there?</legend>
+        <div class="option-grid three-options">
+          <label><input type="radio" name="householdSize" value="1-2"><span>1–2 people</span></label>
+          <label><input type="radio" name="householdSize" value="3-4"><span>3–4 people</span></label>
+          <label><input type="radio" name="householdSize" value="5+"><span>5+ people</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="quiz-question">
+        <legend><span>3</span> How many air-conditioners are used regularly?</legend>
+        <div class="option-grid three-options">
+          <label><input type="radio" name="aircons" value="0"><span>None</span></label>
+          <label><input type="radio" name="aircons" value="1-2"><span>1–2 units</span></label>
+          <label><input type="radio" name="aircons" value="3+"><span>3+ units</span></label>
+        </div>
+      </fieldset>
+      <button class="primary-button full-button" id="saveHouseholdProfile">Build my action plan</button>
+      <p class="form-error" id="householdError" role="alert"></p>
+    </div>
+  </div>
+
+  <div class="modal" id="sharingModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="sharingModalTitle">
+    <div class="modal-backdrop" data-close-sharing></div>
+    <div class="modal-card sharing-card">
+      <button class="modal-close" data-close-sharing aria-label="Close">×</button>
+      <span class="eyebrow">Privacy choice</span>
+      <h2 id="sharingModalTitle">What should happen to your result?</h2>
+      <p>Your bill image and household answers are never shown on the community map.</p>
+      <div class="sharing-options">
+        <label><input type="radio" name="sharingChoice" value="private" checked><span><b>Keep my result private</b><small>Use CarbonPulse for your personal dashboard and action plan only.</small></span></label>
+        <label><input type="radio" name="sharingChoice" value="share"><span><b>Share my anonymized result</b><small>Contribute only your calculated monthly result to a protected precinct cohort. The map remains illustrative until at least 50 homes participate.</small></span></label>
+      </div>
+      <button class="primary-button full-button" id="saveSharingChoice">Finish setup</button>
+      <p class="sharing-reassurance">Sharing is optional and can be changed later from this flow.</p>
     </div>
   </div>
 
@@ -609,13 +669,13 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"><span>✓</span>
-    <p><strong>September usage updated</strong><small>Your estimate and charts are now refreshed.</small></p>
+    <p><strong id="toastTitle">September usage updated</strong><small id="toastDetail">Your estimate and charts are now refreshed.</small></p>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>window.CARBONPULSE_CARTO_KEY = window.CARBONPULSE_CARTO_KEY || "";</script>
   <script src="config.local.js" onerror="this.remove()"></script>
-  <script src="app.js?v=20261020-4"></script>
+  <script src="app.js?v=20261021-2"></script>
 </body>
 
 </html>
