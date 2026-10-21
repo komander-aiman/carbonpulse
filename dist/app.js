@@ -22,6 +22,26 @@ const ESRI_TILE_URLS = {
 const MALAYSIA_BOUNDS = [[0.65, 99.0], [7.85, 119.8]];
 const MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
 const BASE_USAGE = [343, 329, 335, 317, 326];
+const ACTION_IDS = ["temperature", "timer", "standby"];
+const PROFILE_LABELS = {
+  homeType: { apartment: "Apartment", terrace: "Terrace home", larger: "Semi-D / bungalow" },
+  householdSize: { "1-2": "1–2 people", "3-4": "3–4 people", "5+": "5+ people" },
+  aircons: { "0": "no regular air-conditioner use", "1-2": "1–2 air-conditioners", "3+": "3+ air-conditioners" }
+};
+
+function readStoredJson(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readStoredArray(key) {
+  const value = readStoredJson(key, []);
+  return Array.isArray(value) ? value : [];
+}
 
 const PRECINCTS = [
   {
@@ -108,7 +128,9 @@ const TIMELINE = [
 
 const state = {
   kwh: Number(localStorage.getItem("carbonpulse-kwh")) || BASELINE_KWH,
-  completed: JSON.parse(localStorage.getItem("carbonpulse-actions") || '["temperature"]'),
+  profile: readStoredJson("carbonpulse-household-profile", null),
+  selected: readStoredArray("carbonpulse-plan-selected"),
+  completed: readStoredArray("carbonpulse-actions"),
   consent: localStorage.getItem("carbonpulse-consent") === "true",
   mapLayer: "scope",
   mapTheme: localStorage.getItem("carbonpulse-map-theme") === "light" ? "light" : "dark",
@@ -124,6 +146,7 @@ const state = {
 };
 
 let climateMap;
+let onboardingFromBill = false;
 let climateMapStarted = false;
 let climateBasemapVersion = 0;
 let climateBasemapLayers = [];
@@ -180,20 +203,22 @@ function renderLineChart() {
 }
 
 function getActionSavings() {
+  const coolingMultiplier = state.profile?.aircons === "0" ? 0 : state.profile?.aircons === "3+" ? 1.25 : 1;
+  const householdMultiplier = state.profile?.householdSize === "5+" || state.profile?.homeType === "larger" ? 1.15 : 1;
+  const range = (minimumRate, maximumRate, multiplier = 1) => ({
+    min: multiplier === 0 ? 0 : Math.max(1, Math.round(state.kwh * minimumRate * multiplier)),
+    max: multiplier === 0 ? 0 : Math.max(2, Math.round(state.kwh * maximumRate * multiplier))
+  });
   return {
-    temperature: {
-      min: Math.max(4, Math.round(state.kwh * 0.04)),
-      max: Math.max(6, Math.round(state.kwh * 0.06))
-    },
-    timer: {
-      min: Math.max(3, Math.round(state.kwh * 0.027)),
-      max: Math.max(5, Math.round(state.kwh * 0.04))
-    },
-    standby: {
-      min: Math.max(2, Math.round(state.kwh * 0.01)),
-      max: Math.max(3, Math.round(state.kwh * 0.017))
-    }
+    temperature: range(0.04, 0.06, coolingMultiplier),
+    timer: range(0.027, 0.04, coolingMultiplier),
+    standby: range(0.01, 0.017, householdMultiplier)
   };
+}
+
+function getProfileRecommendations() {
+  if (!state.profile) return [];
+  return state.profile.aircons === "0" ? ["standby"] : [...ACTION_IDS];
 }
 
 function getCombinedPotential(savings, actionIds = ["temperature", "timer", "standby"]) {
@@ -258,34 +283,89 @@ function renderEnergy() {
 
 function renderActions() {
   const savings = getActionSavings();
+  const recommendations = new Set(getProfileRecommendations());
+  state.selected = state.selected.filter(id => ACTION_IDS.includes(id));
+  if (state.profile || state.selected.length) {
+    state.completed = state.completed.filter(id => state.selected.includes(id));
+  }
+
   Object.entries(savings).forEach(([id, range]) => {
     $(`#${id}Saving`).textContent = `${range.min}–${range.max}`;
   });
-  $("#overviewActionPotential").textContent = `${savings.temperature.min}–${savings.temperature.max} kWh / month`;
-  $("#combinedPotential").textContent = `Up to ${getCombinedPotential(savings)} kWh`;
+
+  const primaryAction = recommendations.has("temperature") ? "temperature" : "standby";
+  const primarySaving = savings[primaryAction];
+  $("#overviewActionTitle").textContent = state.profile
+    ? primaryAction === "temperature" ? "Cool smarter" : "Cut standby waste"
+    : "Set up your household";
+  $("#overviewImpactPill").textContent = state.profile
+    ? primaryAction === "temperature" ? "High impact" : "Easy win"
+    : "Personalized";
+  $("#overviewImpactPill").className = `impact-pill${state.profile && primaryAction === "standby" ? " easy" : ""}`;
+  $("#overviewActionIllustration").hidden = !state.profile || primaryAction !== "temperature";
+  $("#overviewActionDescription").textContent = state.profile
+    ? primaryAction === "temperature"
+      ? "Set your air conditioner to 24–26°C and use the timer at night."
+      : "Switch off one entertainment zone when devices are idle."
+    : "Answer three short questions so CarbonPulse can recommend a practical starting point.";
+  $("#overviewActionPotential").textContent = state.profile
+    ? `${primarySaving.min}–${primarySaving.max} kWh / month`
+    : "Complete household setup";
+
+  const selectedPotential = getCombinedPotential(savings, state.selected);
+  $("#combinedPotential").textContent = state.selected.length ? `Up to ${selectedPotential} kWh` : "Choose actions to calculate";
   $("#actionPlanHeading").textContent = `Your simplest route to ${TARGET_KWH} kWh.`;
-  const usageBand = state.kwh < 250 ? "Low" : state.kwh <= 350 ? "Typical" : "High Cooling Load";
-  $("#actionPlanSubtitle").textContent = `${usageBand} household profile · illustrative savings scale with your confirmed monthly usage.`;
+  const usageBand = state.kwh < 250 ? "Lower" : state.kwh <= 350 ? "Typical" : "Higher";
+  $("#actionPlanSubtitle").textContent = state.profile
+    ? `${usageBand} usage · recommendations reflect your household answers and confirmed monthly usage.`
+    : "Complete the household setup to receive transparent, profile-based recommendations.";
+
+  if (state.profile) {
+    $("#profileSummaryTitle").textContent = `${PROFILE_LABELS.homeType[state.profile.homeType]} · ${PROFILE_LABELS.householdSize[state.profile.householdSize]}`;
+    $("#profileSummaryText").textContent = `Profile uses ${PROFILE_LABELS.aircons[state.profile.aircons]}. Stored only in this browser.`;
+    $("#editHouseholdProfile").textContent = "Edit household";
+  } else {
+    $("#profileSummaryTitle").textContent = "No profile added yet";
+    $("#profileSummaryText").textContent = "Answer three short questions to personalize your recommendations.";
+    $("#editHouseholdProfile").textContent = "Set up household";
+  }
 
   $$(".plan-card").forEach(card => {
-    const isDone = state.completed.includes(card.dataset.actionId);
+    const id = card.dataset.actionId;
+    const isSelected = state.selected.includes(id);
+    const isDone = isSelected && state.completed.includes(id);
+    card.classList.toggle("selected", isSelected);
     card.classList.toggle("completed", isDone);
-    $(".action-check", card).textContent = isDone ? "✓" : "";
-    $(".action-check", card).setAttribute("aria-label", `Mark ${card.dataset.actionId} action ${isDone ? "incomplete" : "complete"}`);
+    card.classList.toggle("recommended", recommendations.has(id));
+    const completionButton = $(".action-check", card);
+    completionButton.disabled = !isSelected;
+    completionButton.textContent = isDone ? "✓" : "";
+    completionButton.setAttribute("aria-label", isSelected
+      ? `Mark ${id} action ${isDone ? "incomplete" : "complete"}`
+      : `Add ${id} to your plan before marking it complete`);
+    $(".completion-control span", card).textContent = isSelected ? "Completed" : "Add first";
+    const selectButton = $(".plan-select", card);
+    selectButton.setAttribute("aria-pressed", String(isSelected));
+    selectButton.textContent = isSelected ? "Remove from plan" : "Add to my plan";
   });
-  const done = state.completed.length;
+  const completedSelected = state.completed.filter(id => state.selected.includes(id));
+  const done = completedSelected.length;
+  const selectedTotal = state.selected.length;
   $("#actionDone").textContent = done;
-  $("#actionCount").textContent = 3 - done;
-  $("#planPercent").textContent = `${Math.round(done / 3 * 100)}%`;
+  $("#selectedActionTotal").textContent = selectedTotal;
+  $("#actionCount").textContent = Math.max(0, selectedTotal - done);
+  $("#planPercent").textContent = `${selectedTotal ? Math.round(done / selectedTotal * 100) : 0}%`;
   $$(".action-dots i").forEach((dot, index) => dot.classList.toggle("done", index < done));
   const gap = Math.max(0, state.kwh - TARGET_KWH);
-  const completedPotential = getCombinedPotential(savings, state.completed);
+  const completedPotential = getCombinedPotential(savings, completedSelected);
   const reductionProgress = gap === 0 ? 100 : clamp(completedPotential / gap * 100, 0, 100);
   const circumference = 2 * Math.PI * 39;
   $(".ring-progress").style.strokeDashoffset = `${circumference * (1 - reductionProgress / 100)}`;
   $("#targetRingLabel").innerHTML = gap
     ? `<b>${formatNumber(gap)}</b> kWh<br>goal`
     : "<b>Reached</b><br>goal";
+  $("#continueToSharing").disabled = !state.profile || selectedTotal === 0;
+  localStorage.setItem("carbonpulse-plan-selected", JSON.stringify(state.selected));
   localStorage.setItem("carbonpulse-actions", JSON.stringify(state.completed));
 }
 
@@ -690,8 +770,23 @@ function closeModal(modal) {
   document.body.style.overflow = "";
 }
 
-function showToast() {
+function openHouseholdModal() {
+  const profile = state.profile || {};
+  ["homeType", "householdSize", "aircons"].forEach(group => {
+    $$(`input[name="${group}"]`).forEach(input => {
+      input.checked = input.value === profile[group];
+    });
+  });
+  $("#householdModalTitle").textContent = state.profile ? "Update your household profile." : "Tell us what your home is like.";
+  $("#saveHouseholdProfile").textContent = state.profile ? "Update my action plan" : "Build my action plan";
+  $("#householdError").textContent = "";
+  openModal($("#householdModal"));
+}
+
+function showToast(title = "September usage updated", detail = "Your estimate and charts are now refreshed.") {
   const toast = $("#toast");
+  $("#toastTitle").textContent = title;
+  $("#toastDetail").textContent = detail;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 3800);
 }
@@ -705,10 +800,12 @@ $("#menuButton").addEventListener("click", () => {
 });
 
 $$('[data-open-bill]').forEach(button => button.addEventListener("click", () => {
-  $("#consentInput").checked = state.consent;
+  $("#confirmBill").textContent = state.profile ? "Confirm & analyse" : "Continue: tell us about your home";
   openModal($("#billModal"));
 }));
 $$('[data-close-modal]').forEach(button => button.addEventListener("click", () => closeModal($("#billModal"))));
+$$('[data-close-household]').forEach(button => button.addEventListener("click", () => closeModal($("#householdModal"))));
+$$('[data-close-sharing]').forEach(button => button.addEventListener("click", () => closeModal($("#sharingModal"))));
 $("#privacyButton").addEventListener("click", () => openModal($("#privacyModal")));
 $$('[data-close-privacy]').forEach(button => button.addEventListener("click", () => closeModal($("#privacyModal"))));
 
@@ -721,7 +818,7 @@ $("#billFile").addEventListener("change", event => {
 
 $("#loadSampleBill").addEventListener("click", () => {
   $("#kwhInput").value = 270;
-  $("#uploadHint").textContent = "Sample 270 kWh value loaded for demonstration — click Confirm & analyse";
+  $("#uploadHint").textContent = "Sample 270 kWh value loaded for demonstration — continue when ready";
   $("#formError").textContent = "";
 });
 
@@ -732,22 +829,83 @@ $("#confirmBill").addEventListener("click", () => {
     return;
   }
   state.kwh = Math.round(value);
-  state.consent = $("#consentInput").checked;
   localStorage.setItem("carbonpulse-kwh", state.kwh);
-  localStorage.setItem("carbonpulse-consent", String(state.consent));
   $("#formError").textContent = "";
   renderEnergy();
   renderActions();
-  renderCohortStatus();
   closeModal($("#billModal"));
-  showToast();
+  if (!state.profile) {
+    onboardingFromBill = true;
+    openHouseholdModal();
+  } else {
+    showToast();
+  }
 });
 
 $$('.action-check').forEach(button => button.addEventListener("click", () => {
   const id = button.closest(".plan-card").dataset.actionId;
+  if (!state.selected.includes(id)) return;
   state.completed = state.completed.includes(id) ? state.completed.filter(item => item !== id) : [...state.completed, id];
   renderActions();
 }));
+
+$$('.plan-select').forEach(button => button.addEventListener("click", () => {
+  const id = button.closest(".plan-card").dataset.actionId;
+  state.selected = state.selected.includes(id) ? state.selected.filter(item => item !== id) : [...state.selected, id];
+  state.completed = state.completed.filter(item => state.selected.includes(item));
+  renderActions();
+}));
+
+$("#editHouseholdProfile").addEventListener("click", () => {
+  onboardingFromBill = false;
+  openHouseholdModal();
+});
+
+$("#saveHouseholdProfile").addEventListener("click", () => {
+  const profile = {
+    homeType: $('input[name="homeType"]:checked')?.value,
+    householdSize: $('input[name="householdSize"]:checked')?.value,
+    aircons: $('input[name="aircons"]:checked')?.value
+  };
+  if (!profile.homeType || !profile.householdSize || !profile.aircons) {
+    $("#householdError").textContent = "Choose one answer for all three questions.";
+    return;
+  }
+
+  const isFirstProfile = !state.profile;
+  state.profile = profile;
+  localStorage.setItem("carbonpulse-household-profile", JSON.stringify(profile));
+  if (isFirstProfile || state.selected.length === 0) {
+    state.selected = getProfileRecommendations();
+    state.completed = state.completed.filter(id => state.selected.includes(id));
+  }
+  renderActions();
+  closeModal($("#householdModal"));
+  navigate("actions");
+  showToast(
+    onboardingFromBill ? "Household setup complete" : "Household profile updated",
+    "Review the recommended actions, adjust your plan, then continue to privacy settings."
+  );
+  onboardingFromBill = false;
+});
+
+$("#continueToSharing").addEventListener("click", () => {
+  const choice = state.consent ? "share" : "private";
+  $(`input[name="sharingChoice"][value="${choice}"]`).checked = true;
+  openModal($("#sharingModal"));
+});
+
+$("#saveSharingChoice").addEventListener("click", () => {
+  state.consent = $('input[name="sharingChoice"]:checked')?.value === "share";
+  localStorage.setItem("carbonpulse-consent", String(state.consent));
+  renderCohortStatus();
+  closeModal($("#sharingModal"));
+  showToast(
+    state.consent ? "Sharing preference saved" : "Your result remains private",
+    state.consent ? "Your anonymized result is recorded as awaiting the 50-home cohort threshold." : "Your dashboard and action plan remain available for personal use."
+  );
+  navigate(state.consent ? "precinct" : "overview");
+});
 
 $$('.tip-toggle').forEach(button => button.addEventListener("click", () => button.closest(".plan-card").classList.toggle("tip-open")));
 [$("#householdSlider"), $("#savingSlider")].forEach(input => input.addEventListener("input", renderScenario));
