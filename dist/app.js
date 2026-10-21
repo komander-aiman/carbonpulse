@@ -142,7 +142,8 @@ const formatFeedTime = value => {
 function navigate(view) {
   $$(".nav-item").forEach(item => item.classList.toggle("active", item.dataset.view === view));
   $$(".view").forEach(panel => panel.classList.toggle("active", panel.dataset.viewPanel === view));
-  document.title = `CarbonPulse · ${view.charAt(0).toUpperCase() + view.slice(1)}`;
+  const viewTitle = view === "precinct" ? "Climate view" : view.charAt(0).toUpperCase() + view.slice(1);
+  document.title = `CarbonPulse · ${viewTitle}`;
   window.scrollTo({ top: 0, behavior: "smooth" });
   $("#sidebar").classList.remove("open");
   $("#menuButton").setAttribute("aria-expanded", "false");
@@ -518,24 +519,14 @@ function getScenarioSaving() {
 }
 
 function getMarkerMetric(location) {
-  if (state.mapLayer === "co2") {
+  if (state.mapLayer === "atmosphere") {
     const value = location.atmosphere.co2;
     return {
       value,
       display: value.toFixed(1),
       unit: "ppm CO₂",
-      label: "Atmospheric CO₂",
+      label: "Modelled atmospheric CO₂",
       tone: value < 427 ? "emerald" : value <= 430 ? "amber" : "orange"
-    };
-  }
-  if (state.mapLayer === "air") {
-    const value = location.atmosphere.aqi;
-    return {
-      value,
-      display: Math.round(value),
-      unit: "US AQI",
-      label: "Air quality",
-      tone: value <= 50 ? "emerald" : value <= 100 ? "amber" : "orange"
     };
   }
 
@@ -571,8 +562,12 @@ function markerHtml(location, metric) {
 
 function markerPopup(location, metric) {
   const source = location.live ? "Live Open-Meteo / CAMS model" : "Fallback demonstration data";
+  if (state.mapLayer === "atmosphere") {
+    return `<strong>${location.name}</strong><br>${metric.label}: ${metric.display} ${metric.unit}<br>
+      <small>US AQI ${Math.round(location.atmosphere.aqi)} · PM2.5 ${location.atmosphere.pm25.toFixed(1)} µg/m³ · CO ${Math.round(location.atmosphere.co)} µg/m³<br>${source}</small>`;
+  }
   return `<strong>${location.name}</strong><br>${metric.label}: ${metric.display} ${metric.unit}<br>
-    <small>PM2.5 ${location.atmosphere.pm25.toFixed(1)} µg/m³ · CO ${Math.round(location.atmosphere.co)} µg/m³<br>${source}</small>`;
+    <small>Illustrative monthly electricity footprint · 0.740 kg CO₂e/kWh<br>Not an SDP corporate emissions inventory</small>`;
 }
 
 function renderMapMarkers() {
@@ -599,20 +594,18 @@ function renderMapMarkers() {
 }
 
 function setMapLayer(layer) {
-  state.mapLayer = layer;
-  $$("[data-map-layer]").forEach(button => button.classList.toggle("active", button.dataset.mapLayer === layer));
+  state.mapLayer = layer === "scope" ? "scope" : "atmosphere";
+  $$("[data-map-layer]").forEach(button => button.classList.toggle("active", button.dataset.mapLayer === state.mapLayer));
   const descriptions = {
     scope: "Illustrative monthly electricity-use scenario informed by GHG Protocol Scope 3 Category 11 (Use of Sold Products) using the 2024 provisional Peninsular Malaysia grid factor (0.740 kg CO₂e/kWh). Not an SDP corporate emissions inventory.",
-    co2: "Regional atmospheric CO₂ model estimates at approximately 11 km resolution.",
-    air: "Live US AQI with carbon monoxide and PM2.5 context from CAMS ENSEMBLE."
+    atmosphere: "Latest Open-Meteo/CAMS model estimates: atmospheric CO₂ on each marker, with US AQI, PM2.5 and carbon monoxide in its details. Modelled conditions—not local sensors or source emissions."
   };
   const legends = {
     scope: [["Low / <225", "emerald"], ["225–255", "amber"], ["High / >255", "orange"]],
-    co2: [["<427 ppm", "emerald"], ["427–430", "amber"], [">430 ppm", "orange"]],
-    air: [["Good / ≤50", "emerald"], ["Moderate", "amber"], ["Unhealthy", "orange"]]
+    atmosphere: [["<427 ppm", "emerald"], ["427–430", "amber"], [">430 ppm", "orange"]]
   };
-  $("#mapLayerDescription").textContent = descriptions[layer];
-  $("#mapLegend").innerHTML = legends[layer].map(([label, tone]) => `<span><i class="legend-${tone}"></i>${label}</span>`).join("");
+  $("#mapLayerDescription").textContent = descriptions[state.mapLayer];
+  $("#mapLegend").innerHTML = legends[state.mapLayer].map(([label, tone]) => `<span><i class="legend-${tone}"></i>${label}</span>`).join("");
   renderMapMarkers();
 }
 
