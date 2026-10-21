@@ -28,3 +28,6 @@ Thumbs.db
 
 # agent tooling (local only)
 .kilo/
+
+# Vendored at build time from node_modules by scripts/sync-maplibre-worker.mjs
+public/maplibre/

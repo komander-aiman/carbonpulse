@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/jobs/sync-national-energy", "schedule": "0 3 5 * *" },
+    { "path": "/api/jobs/sync-national-ghg", "schedule": "0 4 1 * *" },
+    { "path": "/api/jobs/sync-context-stats", "schedule": "0 5 1 1,4,7,10 *" },
+    { "path": "/api/jobs/sync-weather", "schedule": "0 19 * * *" },
+    { "path": "/api/jobs/rebuild-zones", "schedule": "0 * * * *" },
+    { "path": "/api/jobs/purge-parse-buffers", "schedule": "15 * * * *" }
+  ]
+}
