@@ -58,11 +58,12 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .icon-button svg { width: 18px; }
 .menu-button { display: none; }
 
-main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
-.view { display: none; animation: viewIn .35s ease both; }
+main { width: 100%; max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
+.view { min-width: 0; display: none; animation: viewIn .35s ease both; }
 .view.active { display: block; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } }
 .page-heading { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
+.page-heading > div { min-width: 0; }
 .page-heading h1 { margin: 4px 0 5px; font: 800 clamp(30px, 3.2vw, 46px)/1.1 "Manrope", sans-serif; letter-spacing: -1.6px; }
 .page-heading p { margin: 0; color: var(--muted); font-size: 15px; }
 .compact-heading { align-items: center; margin-bottom: 34px; }
@@ -566,9 +567,10 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .demo-badge { display: none; }
   .top-actions .avatar { display: none; }
   .location-pill { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .page-heading { align-items: flex-start; flex-direction: column; }
+  .page-heading { width: 100%; align-items: flex-start; flex-direction: column; }
+  .page-heading > div, .page-heading p, .cohort-status { width: 100%; max-width: 100%; }
   .page-heading .primary-button { width: 100%; }
-  .page-heading h1 { font-size: 31px; letter-spacing: -1px; }
+  .page-heading h1 { max-width: 100%; font-size: 31px; letter-spacing: -1px; overflow-wrap: anywhere; }
   .metric-grid, .steps-grid, .climate-metric-grid { grid-template-columns: minmax(0,1fr); }
   .climate-metric-grid article:last-child { grid-column: auto; }
   .metric-card { min-width: 0; }
@@ -585,7 +587,8 @@ main { max-width: 1460px; margin: 0 auto; padding: 38px 4vw 60px; }
   .plan-card .plan-icon { display: none; }
   .plan-saving { grid-column: 2; }
   .plan-footer { padding: 24px; }
-  .cohort-status { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .cohort-status { min-width: 0; align-items: flex-start; flex-direction: column; gap: 7px; }
+  .cohort-status p { overflow-wrap: anywhere; }
   .climate-map-card { height: 720px; }
   .map-title-block { top: 20px; left: 18px; right: 18px; max-width: none; }
   .map-title-block p { max-width: 290px; }

@@ -4,9 +4,9 @@ CarbonPulse is a responsive, buildless web prototype based on the hackathon prop
 
 It turns a resident's monthly electricity usage into an explainable emissions estimate, practical household actions, and a clearly labelled precinct scenario.
 
-The **Precinct pulse** view combines:
+The **Climate view** combines:
 
-- an interactive Leaflet township map with household, atmospheric CO2, and air-quality layers, light/dark styles, and township/Malaysia extents;
+- an interactive Leaflet township map with household-footprint and current-atmosphere modes, light/dark styles, and township/Malaysia extents;
 - live no-key Open-Meteo weather and CAMS air-quality model feeds with Malaysian timestamps and labelled fallback data;
 - a Global Warming API atmospheric CO2 reference;
 - a macro-to-micro 1850–2030 timeline; and
