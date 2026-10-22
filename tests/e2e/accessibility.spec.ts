@@ -6,6 +6,7 @@ const ROUTES = [
   "/energy",
   "/energy/upload",
   "/actions",
+  "/journey",
   "/questionnaire",
   "/community",
   "/learn",
@@ -73,10 +74,11 @@ test("every chart exposes a text or table equivalent", async ({ page }) => {
   const table = page.getByRole("table", { name: /Confirmed billing periods/i });
   await expect(table).toBeVisible();
 
-  await page.goto("/");
-  const srTable = page.locator("table.sr-only");
-  await expect(srTable).toHaveCount(1);
-  await expect(srTable.getByRole("caption")).toContainText("Monthly recorded electricity usage");
+  await page.goto("/journey");
+  const dailyTable = page.getByRole("table", { name: /Daily usage trend by billing period/i });
+  await expect(dailyTable).toBeVisible();
+  await expect(dailyTable.getByRole("columnheader", { name: "kWh per day" })).toBeVisible();
+  await expect(page.getByRole("table", { name: /Recorded totals and estimated emissions/i })).toBeVisible();
 });
 
 test("keyboard user can reach the primary action and open the modal", async ({ page }) => {

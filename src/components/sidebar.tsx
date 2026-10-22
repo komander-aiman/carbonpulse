@@ -22,6 +22,11 @@ const ITEMS = [
     icon: <path d="M9 18h6M10 22h4M8.3 14.2A7 7 0 1 1 16 14c-1 .8-1.4 1.5-1.5 2H9.4c-.2-.6-.5-1.2-1.1-1.8Z" />,
   },
   {
+    href: "/journey",
+    label: "Journey",
+    icon: <path d="M4 19h4V9H4v10Zm6 0h4V5h-4v14Zm6 0h4v-7h-4v7Z" />,
+  },
+  {
     href: "/community",
     label: "Community",
     icon: <path d="M3 20V9l5-4 5 4v11M13 12l4-3 4 3v8M6 20v-5h4v5M16 20v-4h2v4" />,

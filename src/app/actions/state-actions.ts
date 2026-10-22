@@ -21,6 +21,7 @@ export async function updateActionState(input: {
   const session = await ensureSession();
   await setActionStatePersistent(session.householdId, parsed.data.actionId, parsed.data.state);
   revalidatePath("/actions");
+  revalidatePath("/journey");
   revalidatePath("/");
   return { ok: true };
 }

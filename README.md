@@ -45,11 +45,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 | Route | What it does |
 |---|---|
-| `/` | Overview: recorded kWh, both estimates, six-month trend, goal with badge, similar-home card, next action, zone teaser |
+| `/` | Overview: recorded kWh, both estimates, carbon-journey section (timeline, kWh/day comparison, next step), goal with badge, similar-home card, zone teaser |
 | `/energy` | Billing history, flat vs modelled per period, method panel, goal rule |
 | `/energy/upload` | Bill photo as a local reference, manual kWh entry, validation |
 | `/questionnaire` | Eight-question household profile, skippable and editable |
 | `/actions` | Ranked actions filtered by profile, plan selection, potential with overlap discount and cap, goal |
+| `/journey` | Your carbon journey: chronological bills, normalised kWh/day comparison, goal milestones, user-reported actions, next step |
 | `/community` | Zone statistics, shared-goal progress, suppression states, township climate map, zone map, demo toggle, consent |
 | `/learn` | Method, evidence definitions, version registry, limitations, k = 5 rationale |
 | `/township` | Published Elmina articles |
@@ -88,6 +89,7 @@ src/
     profile/      Questionnaire -> archetype, profile band, action applicability
     actions/      Versioned evidence catalog, ranking, overlap discount, plan cap
     goal/         Provisional and confirmed goal rules (D18)
+    journey/      Billing-day normalisation, observed-change comparison, next step, journey events
     comparison/   Similar-home tier ladder and suppression (D16)
     zone/         k = 5 gate, median, IQR, band edges, rounding (D8, D24)
     shared-goal/  Goal aggregation and progress (D17)
@@ -217,8 +219,8 @@ map.
 - The in-memory store and rate limits are **per-process**. A multi-instance deployment must
   move both to Postgres or Redis.
 - `ADMIN_STUB` is an environment flag in this build, not a real server-side role check.
-- The **SQL suite has never run against a live database**; migration 0004 is reviewed but
-  unexecuted.
+- The **SQL suite has never run against a live database**; migrations 0004 and 0005 are
+  reviewed but unexecuted.
 - Open-Meteo's free tier is non-commercial. Commercialising the pilot requires a paid host
   and key.
 
@@ -240,6 +242,13 @@ map.
 - **No household coordinates.** The map shows the indicative OSM boundary, zone
   aggregates, and public POIs only.
 - **Completing an action records intent.** It never produces a "saved kg" figure.
+- **The journey compares kWh per day, not monthly totals.** Billing-day counts come from
+  validated boundaries with an exclusive end date. Zero or missing baselines produce no
+  percentage change. Emissions are compared only when the stored factor versions match;
+  nothing is recalculated to force a comparison.
+- **Goal milestones are recorded, not reconstructed.** `/journey` writes a milestone only
+  when a newly confirmed bill meets the goal computed before it, using the existing goal
+  engine. Existing history is never re-scored, and no historical goal is invented.
 - **`domain/` stays pure.** If you need `fetch`, a cookie, or a React hook, it belongs in
   `lib/` or `app/`.
 
@@ -261,6 +270,14 @@ Recorded during planning; do not "improve" these into guesses.
   Every zone statistic is cohort-derived, never a measured township figure.
 - Elmina boundary: OSM way `866543395`, bbox `3.1602542,101.4924890,3.2135137,
   101.5288995`. Indicative, not gazetted.
+
+## Persistence limits
+
+The pilot in-memory store survives page refreshes and navigation within one process.
+Supabase-backed households persist across restarts. Journey milestones are stored in
+`goal_milestone` (migration 0005); until that migration is applied, the in-memory path
+still records them for the current process. Estimates are stored per period in
+`estimate` so a factor update never rewrites history.
 
 ## Not yet wired
 

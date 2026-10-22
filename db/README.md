@@ -7,6 +7,8 @@ Forward-only migrations. Each file states its rollback note at the top.
 | `migrations/0001_init.sql` | Tables, constraints, indexes, `v_active_factor` |
 | `migrations/0002_rls.sql` | RLS policies, `current_household_id()`, `v_public_cohort_stats`, `v_cohort_stats_published` |
 | `migrations/0003_server_role.sql` | Explicit server-only Data API grants when automatic table exposure is disabled |
+| `migrations/0004_profile_and_zones.sql` | Household profile, zone snapshots, comparison cache |
+| `migrations/0005_goal_milestones.sql` | Recorded goal milestones for the carbon journey (RLS, owner-scoped) |
 | `seeds/reference.sql` | Township, 6 subzones, 5 factor versions, model version, 8 action evidence rows |
 
 ## Applying
@@ -15,6 +17,8 @@ Forward-only migrations. Each file states its rollback note at the top.
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0002_rls.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0003_server_role.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0004_profile_and_zones.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0005_goal_milestones.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/seeds/reference.sql
 ```
 
@@ -58,9 +62,9 @@ psql "postgres://localhost/carbonpulse_test" -v ON_ERROR_STOP=1 -f tests/sql/rls
 
 `rls.test.sql` covers: demo exclusion, consent withdrawal, k-1 suppression of
 counts and quartiles, count coarsening above k, unscoped-session isolation,
-cross-household read and write attempts, draft invisibility, suppressed-snapshot
-invisibility, the suppressed-row CHECK constraint, and the meaningful table
-constraints. It runs in a transaction and rolls back.
+cross-household read and write attempts, goal-milestone ownership and duplicate
+refusal, draft invisibility, suppressed-snapshot invisibility, the suppressed-row
+CHECK constraint, and the meaningful table constraints. It runs in a transaction and rolls back.
 
 Note: Supabase provisions `auth.users`; running against a plain Postgres
 instance requires creating a stub `auth` schema with a `users` table first.

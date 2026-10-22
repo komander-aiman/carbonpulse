@@ -48,7 +48,7 @@ export function ActionList({ actions }: { actions: readonly ActionView[] }) {
         const done = action.state === "done";
         const iconKey = ICON[action.category] ?? "temp";
         return (
-          <article key={action.id} className={`plan-card${done ? " completed" : ""}`}>
+          <article key={action.id} className={`plan-card${done ? " completed" : ""}`} data-action-id={action.id}>
             <button
               className="action-check"
               type="button"
@@ -73,7 +73,7 @@ export function ActionList({ actions }: { actions: readonly ActionView[] }) {
                 <span>Effort {action.effort}/3</span>
                 <span aria-hidden="true">&middot;</span>
                 <span>Rank {action.rank}</span>
-                {done ? <span className="evidence-tag recorded">Done</span> : null}
+                {done ? <span className="evidence-tag recorded">Done &middot; user-reported</span> : null}
                 {action.state === "snoozed" ? <span className="evidence-tag cached">Snoozed</span> : null}
               </div>
               <h2>{action.title}</h2>

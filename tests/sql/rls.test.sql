@@ -246,6 +246,75 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- Goal milestones are owner-scoped
+-- ---------------------------------------------------------------------------
+
+set local role authenticated;
+select set_config('carbonpulse.household_id', '33333333-3333-4333-8333-000000000001', true);
+
+do $$
+declare
+  period uuid;
+  n int;
+begin
+  select id into period from usage_month
+   where household_id = '33333333-3333-4333-8333-000000000001';
+
+  insert into goal_milestone
+    (household_id, period_id, goal_kwh, rule, label, achieved_kwh)
+  values
+    ('33333333-3333-4333-8333-000000000001', period, 270, 'provisional', 'Provisional', 260);
+
+  select count(*) into n from goal_milestone;
+  if n <> 1 then
+    raise exception 'owner should read exactly 1 milestone, read %', n;
+  end if;
+
+  select count(*) into n from goal_milestone
+   where household_id = '33333333-3333-4333-8333-000000000002';
+  if n <> 0 then
+    raise exception 'cross-household milestone read succeeded';
+  end if;
+
+  -- A duplicate milestone for the same achieved period must be refused.
+  begin
+    insert into goal_milestone
+      (household_id, period_id, goal_kwh, rule, label, achieved_kwh)
+    values
+      ('33333333-3333-4333-8333-000000000001', period, 270, 'provisional', 'Provisional', 260);
+    raise exception 'duplicate milestone accepted';
+  exception
+    when unique_violation then null;
+    when others then
+      if sqlerrm like '%duplicate milestone accepted%' then raise; end if;
+  end;
+end $$;
+
+-- Writing a milestone for another household must fail.
+do $$
+declare
+  other_period uuid;
+begin
+  select id into other_period from usage_month
+   where household_id = '33333333-3333-4333-8333-000000000002'
+   limit 1;
+
+  begin
+    insert into goal_milestone
+      (household_id, period_id, goal_kwh, rule, label, achieved_kwh)
+    values
+      ('33333333-3333-4333-8333-000000000002', other_period, 270, 'provisional', 'Provisional', 260);
+    raise exception 'cross-household milestone insert succeeded';
+  exception
+    when insufficient_privilege then null;
+    when others then
+      if sqlerrm like '%cross-household milestone insert succeeded%' then raise; end if;
+  end;
+end $$;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Constraint coverage
 -- ---------------------------------------------------------------------------
 
