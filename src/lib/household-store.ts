@@ -1,11 +1,40 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { DEMO_COMPLETED_ACTIONS, DEMO_HOUSEHOLD, DEMO_PERIODS, DEMO_PROFILE } from "@/db/demo";
 import type { HouseholdActionState } from "@/domain/actions";
+import { flatEstimate, modelledEstimate } from "@/domain/carbon/estimates";
+import { getActiveFactor } from "@/domain/carbon/factors";
+import { buildIntensityProfile } from "@/domain/carbon/intensity";
+import type { ArchetypeId } from "@/domain/carbon/types";
+import { goalReachedByNewPeriod } from "@/domain/journey";
+import type { GoalRule } from "@/domain/goal";
 import { archetypeFor, type HouseholdProfile } from "@/domain/profile";
 import { DEMO_MODE } from "@/lib/config";
 import { supabaseAdmin } from "@/lib/supabase";
+
+/** The Database seeds a deterministic uuid per factor version; this maps the
+ * registry id to that row so a stored estimate can reference an immutable
+ * version. An unknown id would mean the registry and seed diverged. */
+const FACTOR_ROW_IDS: Readonly<Record<string, string>> = {
+  "peninsular-2024-provisional": "00000000-0000-4000-8000-000000000001",
+  "peninsular-2023-provisional": "00000000-0000-4000-8000-000000000002",
+  "peninsular-2022-provisional": "00000000-0000-4000-8000-000000000003",
+};
+
+/**
+ * An estimate captured when the bill was confirmed. Storing the factor and
+ * model here is what keeps history immutable: a later factor update never
+ * rewrites an existing period.
+ */
+export interface StoredEstimate {
+  readonly flatKg: number;
+  readonly modelledKg: number;
+  readonly factorId: string;
+  readonly factorKgPerKwh: number;
+  readonly modelId: string;
+  readonly computedAt: string;
+}
 
 export interface UsageRecord {
   readonly id: string;
@@ -16,12 +45,30 @@ export interface UsageRecord {
   readonly source: "manual" | "csv" | "derived" | "demo";
   readonly confirmedAt: string;
   readonly isDemo: boolean;
+  /** Null only for legacy rows written before estimates were stored. */
+  readonly estimate: StoredEstimate | null;
 }
 
 export interface ActionRecord {
   readonly actionId: string;
   readonly state: HouseholdActionState;
   readonly updatedAt: string;
+}
+
+/**
+ * A goal milestone is recorded only at the moment a newly confirmed bill meets
+ * the goal computed from the periods before it. No milestone is back-filled
+ * for history that predates this table.
+ */
+export interface GoalMilestoneRecord {
+  readonly id: string;
+  readonly periodId: string;
+  readonly goalKwh: number;
+  readonly rule: GoalRule;
+  readonly label: "Provisional" | "Confirmed";
+  readonly achievedKwh: number;
+  readonly occurredAt: string;
+  readonly isDemo: boolean;
 }
 
 export interface ConsentRecord {
@@ -46,6 +93,7 @@ export interface HouseholdData {
   readonly actions: readonly ActionRecord[];
   readonly consents: readonly ConsentRecord[];
   readonly profile: HouseholdProfile | null;
+  readonly milestones: readonly GoalMilestoneRecord[];
 }
 
 /**
@@ -59,6 +107,7 @@ interface Store {
   readonly actions: Map<string, ActionRecord[]>;
   readonly consents: Map<string, ConsentRecord[]>;
   readonly profiles: Map<string, HouseholdProfile>;
+  readonly milestones: Map<string, GoalMilestoneRecord[]>;
 }
 
 const globalForStore = globalThis as unknown as { __carbonpulseStore?: Store };
@@ -71,9 +120,30 @@ function store(): Store {
       actions: new Map(),
       consents: new Map(),
       profiles: new Map(),
+      milestones: new Map(),
     };
   }
   return globalForStore.__carbonpulseStore;
+}
+
+function demoEstimate(kwh: number, periodStart: string, periodEnd: string): StoredEstimate {
+  const factor = getActiveFactor("peninsular");
+  const intensity = buildIntensityProfile();
+  return {
+    flatKg: flatEstimate(kwh, factor).kgCo2e,
+    modelledKg: modelledEstimate({
+      kwh,
+      periodStart,
+      periodEnd,
+      archetype: DEMO_HOUSEHOLD.archetype,
+      factor,
+      intensity,
+    }).kgCo2e,
+    factorId: factor.id,
+    factorKgPerKwh: factor.kgPerKwh,
+    modelId: intensity.modelVersion.id,
+    computedAt: new Date(`${periodStart}T00:00:00Z`).toISOString(),
+  };
 }
 
 function demoUsage(householdId: string): UsageRecord[] {
@@ -86,6 +156,7 @@ function demoUsage(householdId: string): UsageRecord[] {
     source: "demo" as const,
     confirmedAt: new Date(`${period.periodStart}T00:00:00Z`).toISOString(),
     isDemo: true,
+    estimate: demoEstimate(period.kwh, period.periodStart, period.periodEnd),
   }));
 }
 
@@ -138,6 +209,7 @@ function createHousehold(householdId: string, isDemo: boolean): HouseholdData {
     actions,
     consents: [],
     profile: demoProfile,
+    milestones: [],
   };
 
   persist(data);
@@ -150,6 +222,7 @@ function persist(data: HouseholdData): void {
   s.usage.set(data.household.id, [...data.usage]);
   s.actions.set(data.household.id, [...data.actions]);
   s.consents.set(data.household.id, [...data.consents]);
+  s.milestones.set(data.household.id, [...data.milestones]);
   if (data.profile) s.profiles.set(data.household.id, data.profile);
   else s.profiles.delete(data.household.id);
   evictIfNeeded();
@@ -190,6 +263,7 @@ export function getHousehold(householdId: string): HouseholdData | null {
     actions: [...(s.actions.get(householdId) ?? [])],
     consents: [...(s.consents.get(householdId) ?? [])],
     profile: s.profiles.get(householdId) ?? null,
+    milestones: [...(s.milestones.get(householdId) ?? [])],
   };
 }
 
@@ -275,6 +349,7 @@ export function saveUsage(householdId: string, input: SaveUsageInput): SaveUsage
 
   const replacedDemo = data.usage.some((record) => record.isDemo);
   const retained = replacedDemo ? [] : data.usage;
+  const previousKwh = retained.map((record) => record.kwh);
 
   const record: UsageRecord = {
     id: randomUUID(),
@@ -285,11 +360,80 @@ export function saveUsage(householdId: string, input: SaveUsageInput): SaveUsage
     source: input.source,
     confirmedAt: new Date().toISOString(),
     isDemo: false,
+    estimate: computeEstimate(input.kwh, input.periodStart, input.periodEnd, data.household.archetype),
   };
 
   s.usage.set(householdId, [...retained, record].sort((a, b) => a.periodStart.localeCompare(b.periodStart)));
   s.households.set(householdId, { ...data.household, isDemo: false });
+
+  // A milestone is recorded only if this new confirmed bill meets the goal
+  // computed from the periods that came before it. Existing history is never
+  // re-scored, so no past milestone is invented.
+  const reached = goalReachedByNewPeriod(previousKwh, record.kwh);
+  if (reached) {
+    s.milestones.set(householdId, [
+      ...(s.milestones.get(householdId) ?? []),
+      {
+        id: randomUUID(),
+        periodId: record.id,
+        goalKwh: reached.kwh,
+        rule: reached.rule,
+        label: reached.label,
+        achievedKwh: record.kwh,
+        occurredAt: record.confirmedAt,
+        isDemo: false,
+      },
+    ]);
+  }
+
   return { ok: true, record, replacedDemo };
+}
+
+/**
+ * Captures the flat and modelled values with their versions at the moment of
+ * confirmation. This is the only place a stored estimate is produced, so a
+ * later factor change cannot rewrite an existing period.
+ */
+function computeEstimate(
+  kwh: number,
+  periodStart: string,
+  periodEnd: string,
+  archetype: string,
+): StoredEstimate {
+  const factor = getActiveFactor("peninsular");
+  const intensity = buildIntensityProfile();
+  return {
+    flatKg: flatEstimate(kwh, factor).kgCo2e,
+    modelledKg: modelledEstimate({
+      kwh,
+      periodStart,
+      periodEnd,
+      archetype: archetype as ArchetypeId,
+      factor,
+      intensity,
+    }).kgCo2e,
+    factorId: factor.id,
+    factorKgPerKwh: factor.kgPerKwh,
+    modelId: intensity.modelVersion.id,
+    computedAt: new Date().toISOString(),
+  };
+}
+
+/** Stable hash for the estimate row's unique key. */
+function estimateInputHash(record: UsageRecord, method: "flat" | "modelled"): string {
+  return createHash("sha256")
+    .update(
+      [
+        record.id,
+        method,
+        record.kwh,
+        record.periodStart,
+        record.periodEnd,
+        record.estimate?.factorId ?? "",
+        record.estimate?.modelId ?? "",
+      ].join("|"),
+    )
+    .digest("hex");
 }
 
 export function setActionState(householdId: string, actionId: string, state: HouseholdActionState): void {
@@ -399,6 +543,26 @@ interface ConsentRow {
   readonly created_at: string;
 }
 
+interface EstimateRow {
+  readonly usage_month_id: string | null;
+  readonly method: "flat" | "modelled" | "interval";
+  readonly kg_co2e: number | string;
+  readonly factor_version_id: string;
+  readonly model_version_id: string | null;
+  readonly computed_at: string;
+}
+
+interface MilestoneRow {
+  readonly id: string;
+  readonly period_id: string;
+  readonly goal_kwh: number | string;
+  readonly rule: GoalRule;
+  readonly label: "Provisional" | "Confirmed";
+  readonly achieved_kwh: number | string;
+  readonly occurred_at: string;
+  readonly is_demo: boolean;
+}
+
 interface ProfileRow {
   readonly home_type: HouseholdProfile["homeType"];
   readonly household_size: number | string;
@@ -481,7 +645,16 @@ export async function loadHousehold(
   }
 
   const row = response.data as HouseholdRow;
-  const [township, subzone, usageResponse, actionResponse, consentResponse, profileResponse] = await Promise.all([
+  const [
+    township,
+    subzone,
+    usageResponse,
+    estimateResponse,
+    actionResponse,
+    consentResponse,
+    profileResponse,
+    milestoneResponse,
+  ] = await Promise.all([
     referenceSlug("township", row.township_id),
     referenceSlug("subzone", row.subzone_id),
     db
@@ -489,6 +662,10 @@ export async function loadHousehold(
       .select("id,household_id,period_start,period_end,kwh,source,confirmed_at,is_demo")
       .eq("household_id", householdId)
       .order("period_start"),
+    db
+      .from("estimate")
+      .select("usage_month_id,method,kg_co2e,factor_version_id,model_version_id,computed_at")
+      .eq("household_id", householdId),
     db
       .from("household_action")
       .select("action_id,state,updated_at")
@@ -503,12 +680,19 @@ export async function loadHousehold(
       .select("*")
       .eq("household_id", householdId)
       .maybeSingle(),
+    db
+      .from("goal_milestone")
+      .select("id,period_id,goal_kwh,rule,label,achieved_kwh,occurred_at,is_demo")
+      .eq("household_id", householdId)
+      .order("occurred_at"),
   ]);
 
   if (usageResponse.error) throw databaseError("reading usage", usageResponse.error.message);
+  if (estimateResponse.error) throw databaseError("reading estimates", estimateResponse.error.message);
   if (actionResponse.error) throw databaseError("reading actions", actionResponse.error.message);
   if (consentResponse.error) throw databaseError("reading consent", consentResponse.error.message);
   if (profileResponse.error) throw databaseError("reading the profile", profileResponse.error.message);
+  if (milestoneResponse.error) throw databaseError("reading goal milestones", milestoneResponse.error.message);
 
   const profileRow = profileResponse.data as ProfileRow | null;
   const profile: HouseholdProfile | null = profileRow
@@ -526,6 +710,17 @@ export async function loadHousehold(
       }
     : null;
 
+  const estimatesByPeriod = new Map<string, { flat?: EstimateRow; modelled?: EstimateRow }>();
+  for (const estimate of estimateResponse.data as EstimateRow[]) {
+    if (!estimate.usage_month_id || estimate.method === "interval") continue;
+    const bucket = estimatesByPeriod.get(estimate.usage_month_id) ?? {};
+    bucket[estimate.method] = estimate;
+    estimatesByPeriod.set(estimate.usage_month_id, bucket);
+  }
+  const factorIdByRowId = new Map(
+    Object.entries(FACTOR_ROW_IDS).map(([registryId, rowId]) => [rowId, registryId]),
+  );
+
   const data: HouseholdData = {
     household: {
       id: row.id,
@@ -535,16 +730,33 @@ export async function loadHousehold(
       archetype: row.archetype,
       isDemo: row.is_demo,
     },
-    usage: (usageResponse.data as UsageRow[]).map((usage) => ({
-      id: usage.id,
-      householdId: usage.household_id,
-      periodStart: usage.period_start,
-      periodEnd: usage.period_end,
-      kwh: Number(usage.kwh),
-      source: usage.source,
-      confirmedAt: usage.confirmed_at,
-      isDemo: usage.is_demo,
-    })),
+    usage: (usageResponse.data as UsageRow[]).map((usage) => {
+      const bucket = estimatesByPeriod.get(usage.id);
+      const flat = bucket?.flat;
+      const modelled = bucket?.modelled;
+      const factorRowId = flat?.factor_version_id ?? modelled?.factor_version_id;
+      return {
+        id: usage.id,
+        householdId: usage.household_id,
+        periodStart: usage.period_start,
+        periodEnd: usage.period_end,
+        kwh: Number(usage.kwh),
+        source: usage.source,
+        confirmedAt: usage.confirmed_at,
+        isDemo: usage.is_demo,
+        estimate:
+          flat && modelled
+            ? {
+                flatKg: Number(flat.kg_co2e),
+                modelledKg: Number(modelled.kg_co2e),
+                factorId: (factorRowId && factorIdByRowId.get(factorRowId)) ?? factorRowId ?? "",
+                factorKgPerKwh: Number(flat.kg_co2e) / Number(usage.kwh),
+                modelId: modelled.model_version_id ?? "",
+                computedAt: flat.computed_at,
+              }
+            : null,
+      };
+    }),
     actions: (actionResponse.data as ActionRow[]).map((action) => ({
       actionId: action.action_id,
       state: action.state,
@@ -557,6 +769,16 @@ export async function loadHousehold(
       updatedAt: consent.created_at,
     })),
     profile,
+    milestones: (milestoneResponse.data as MilestoneRow[]).map((milestone) => ({
+      id: milestone.id,
+      periodId: milestone.period_id,
+      goalKwh: Number(milestone.goal_kwh),
+      rule: milestone.rule,
+      label: milestone.label,
+      achievedKwh: Number(milestone.achieved_kwh),
+      occurredAt: milestone.occurred_at,
+      isDemo: milestone.is_demo,
+    })),
   };
 
   persist(data);
@@ -602,6 +824,7 @@ export async function saveUsagePersistent(
   input: SaveUsageInput,
 ): Promise<SaveUsageResult> {
   const before = await loadHousehold(householdId, false);
+  const milestoneCountBefore = before.milestones.length;
   const result = saveUsage(householdId, input);
   if (!result.ok) return result;
 
@@ -622,6 +845,58 @@ export async function saveUsagePersistent(
     persist(before);
     throw databaseError("saving usage", error.message);
   }
+
+  const estimate = record.estimate;
+  if (estimate) {
+    const factorRowId = FACTOR_ROW_IDS[estimate.factorId];
+    if (!factorRowId) {
+      persist(before);
+      throw databaseError(
+        "saving an estimate",
+        `Factor ${estimate.factorId} has no database version row`,
+      );
+    }
+    const rows: { method: "flat" | "modelled"; kg: number; model: string | null }[] = [
+      { method: "flat", kg: estimate.flatKg, model: null },
+      { method: "modelled", kg: estimate.modelledKg, model: estimate.modelId },
+    ];
+    const { error: estimateError } = await db.from("estimate").insert(
+      rows.map((row) => ({
+        household_id: householdId,
+        usage_month_id: record.id,
+        factor_version_id: factorRowId,
+        model_version_id: row.model,
+        method: row.method,
+        kwh: record.kwh,
+        kg_co2e: row.kg,
+        input_hash: estimateInputHash(record, row.method),
+        computed_at: estimate.computedAt,
+      })),
+    );
+    if (estimateError) {
+      await db.from("usage_month").delete().eq("id", record.id);
+      persist(before);
+      throw databaseError("saving an estimate", estimateError.message);
+    }
+  }
+
+  const milestonesAfter = getHousehold(householdId)?.milestones ?? [];
+  const newMilestone = milestonesAfter.length > milestoneCountBefore ? milestonesAfter.at(-1) : null;
+  if (newMilestone) {
+    const { error: milestoneError } = await db.from("goal_milestone").insert({
+      id: newMilestone.id,
+      household_id: householdId,
+      period_id: newMilestone.periodId,
+      goal_kwh: newMilestone.goalKwh,
+      rule: newMilestone.rule,
+      label: newMilestone.label,
+      achieved_kwh: newMilestone.achievedKwh,
+      occurred_at: newMilestone.occurredAt,
+      is_demo: false,
+    });
+    if (milestoneError) throw databaseError("saving a goal milestone", milestoneError.message);
+  }
+
   const { error: householdError } = await db
     .from("household")
     .update({ is_demo: false })

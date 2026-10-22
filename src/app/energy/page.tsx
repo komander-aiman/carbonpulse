@@ -75,7 +75,7 @@ export default async function EnergyPage({
 
           <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable table">
             <table>
-              <caption>Confirmed billing periods, with both estimates for each</caption>
+              <caption>Confirmed billing periods, with billed days, daily use, and both estimates for each</caption>
               <thead>
                 <tr>
                   <th scope="col">Period</th>
@@ -110,7 +110,7 @@ export default async function EnergyPage({
                 ))}
                 {energy.periods.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="muted">
+                    <td colSpan={8} className="muted">
                       No confirmed periods yet.
                     </td>
                   </tr>

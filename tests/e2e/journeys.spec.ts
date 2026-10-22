@@ -11,13 +11,13 @@ test.describe("core journeys", () => {
     await expect(page.getByText("Estimated").first()).toBeVisible();
   });
 
-  test("navigation keeps five sidebar items and marks the active route", async ({ page, isMobile }) => {
+  test("navigation keeps the sidebar items and marks the active route", async ({ page, isMobile }) => {
     await page.goto("/");
     if (isMobile) {
       await page.getByRole("button", { name: "Open menu" }).click();
     }
     const nav = page.getByRole("navigation", { name: "Main navigation" });
-    await expect(nav.getByRole("link")).toHaveCount(5);
+    await expect(nav.getByRole("link")).toHaveCount(6);
     await nav.getByRole("link", { name: /My energy/ }).click();
     await expect(page).toHaveURL(/\/energy$/);
     await expect(nav.getByRole("link", { name: /My energy/ })).toHaveAttribute("aria-current", "page");

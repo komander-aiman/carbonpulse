@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EvidenceRow } from "@/components/evidence";
+import { ExploreHome } from "@/components/explore-home";
 import { ActionList } from "./action-list";
 import { currentHousehold } from "@/lib/current-household";
 import { buildActionsViewModel } from "@/lib/view-model";
@@ -44,7 +45,11 @@ export default async function ActionsPage() {
         </p>
       ) : null}
 
-      <ActionList actions={view.actions} />
+      <ExploreHome model={view.explore} />
+
+      <div id="action-plan" className="section-gap">
+        <ActionList actions={view.actions} />
+      </div>
 
       <div className="plan-footer">
         <div>

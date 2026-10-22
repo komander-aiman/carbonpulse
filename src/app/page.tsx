@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { EvidenceTag, Notice } from "@/components/evidence";
-import { UsageBarChart } from "@/components/charts";
+import { JourneySection } from "@/components/journey";
 import { TwoNumberPanel } from "@/components/two-number-panel";
 import { currentHousehold } from "@/lib/current-household";
-import { buildActionsViewModel, buildEnergyViewModel } from "@/lib/view-model";
+import { buildActionsViewModel, buildEnergyViewModel, buildJourneyViewModel } from "@/lib/view-model";
 import { buildCommunityViewModel } from "@/lib/community-view";
 import { getActiveFactor } from "@/domain/carbon/factors";
 import { scenario, formatScenario } from "@/domain/community";
@@ -19,6 +19,7 @@ export default async function OverviewPage() {
   const data = await currentHousehold();
   const energy = buildEnergyViewModel(data);
   const actions = buildActionsViewModel(data);
+  const journey = buildJourneyViewModel(data);
   const community = await buildCommunityViewModel(data);
   const factor = getActiveFactor();
 
@@ -39,7 +40,6 @@ export default async function OverviewPage() {
   });
   const scenarioText = formatScenario(scenarioResult);
   const featured = SEED_ARTICLES.find((article) => article.tags.includes("grid")) ?? SEED_ARTICLES[0]!;
-  const nextAction = actions.actions.find((action) => action.state === "suggested") ?? actions.actions[0];
   const comparison = community.comparison;
 
   return (
@@ -222,57 +222,7 @@ export default async function OverviewPage() {
         </article>
       </div>
 
-      <div className="dashboard-grid">
-        <article className="panel chart-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">Six-month view</span>
-              <h2>Your energy trend</h2>
-            </div>
-            <div className="legend">
-              <span className="legend-dot" aria-hidden="true" />
-              Recorded kWh
-            </div>
-          </div>
-          <UsageBarChart periods={energy.periods} />
-        </article>
-
-        <article className="panel next-action-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">Best next step</span>
-              <h2>{nextAction?.shortTitle ?? "Review your plan"}</h2>
-            </div>
-            {nextAction ? (
-              <span
-                className={`impact-pill ${nextAction.effort === 1 ? "" : nextAction.effort === 2 ? "medium" : "easy"}`}
-              >
-                {nextAction.effort === 1 ? "High impact" : nextAction.effort === 2 ? "Medium" : "Easy win"}
-              </span>
-            ) : null}
-          </div>
-          <div className="action-illustration" aria-hidden="true">
-            <span className="sun" />
-            <span className="ac-unit">
-              <i />
-              <i />
-              <i />
-            </span>
-            <span className="air-line line-a" />
-            <span className="air-line line-b" />
-            <span className="air-line line-c" />
-            <span className="plant">⌁</span>
-          </div>
-          <p>{nextAction?.description ?? "Open your plan to see the actions ranked for your household."}</p>
-          <div className="potential">
-            <span>Potential</span>
-            <strong>{nextAction ? `${nextAction.kwhLow}–${nextAction.kwhHigh} kWh / month` : "—"}</strong>
-          </div>
-          <Link className="secondary-button" href="/actions">
-            View action plan
-          </Link>
-        </article>
-      </div>
+      <JourneySection view={journey} />
 
       <section className="panel section-gap" aria-labelledby="similarHeading">
         <div className="panel-heading">
